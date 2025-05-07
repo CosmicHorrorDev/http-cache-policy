@@ -137,7 +137,7 @@ fn not_when_urls_mismatch() {
 
     assert!(!policy
         .before_request(&request_parts(Request::builder().uri("/foo?bar")), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -148,9 +148,7 @@ fn not_when_methods_mismatch() {
         &resp_cache_control("max-age=2"),
     );
 
-    assert!(!policy
-        .before_request(&Request::new(()), now)
-        .satisfies_without_revalidation());
+    assert!(!policy.before_request(&Request::new(()), now).is_fresh());
 }
 
 #[test]
@@ -163,5 +161,5 @@ fn not_when_methods_mismatch_head() {
 
     assert!(!policy
         .before_request(&request_parts(Request::builder()), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }

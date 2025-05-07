@@ -834,9 +834,8 @@ pub enum BeforeRequest {
 }
 
 impl BeforeRequest {
-    /// For backwards compatibility only.
-    /// Don't forget to use request headers from `BeforeRequest::Fresh`
-    pub fn satisfies_without_revalidation(&self) -> bool {
+    /// Returns if this is a `BeforeRequest::Fresh(_)`
+    pub fn is_fresh(&self) -> bool {
         matches!(self, Self::Fresh(_))
     }
 }

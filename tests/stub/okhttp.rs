@@ -244,10 +244,10 @@ fn request_max_age() {
 
     assert!(policy
         .before_request(&req_cache_control("max-age=90"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
     assert!(!policy
         .before_request(&req_cache_control("max-age=30"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -261,11 +261,11 @@ fn request_min_fresh() {
 
     assert!(!policy
         .before_request(&req_cache_control("min-fresh=120"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(policy
         .before_request(&req_cache_control("min-fresh=10"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -285,15 +285,13 @@ fn request_max_stale() {
 
     assert!(policy
         .before_request(&req_cache_control("max-stale=180"), now)
-        .satisfies_without_revalidation());
-
+        .is_fresh());
     assert!(policy
         .before_request(&req_cache_control("max-stale"), now)
-        .satisfies_without_revalidation());
-
+        .is_fresh());
     assert!(!policy
         .before_request(&req_cache_control("max-stale=10"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -314,11 +312,11 @@ fn request_max_stale_not_honored_with_must_revalidate() {
 
     assert!(!policy
         .before_request(&req_cache_control("max-stale=180"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(&req_cache_control("max-stale"), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]

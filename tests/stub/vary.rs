@@ -25,14 +25,14 @@ fn vary_basic() {
             &request_parts(Request::builder().header("weather", "nice")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
             &request_parts(Request::builder().header("weather", "bad")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -54,7 +54,7 @@ fn asterisks_does_not_match() {
             &request_parts(Request::builder().header("weather", "ok")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -101,14 +101,14 @@ fn values_are_case_sensitive() {
             &request_parts(Request::builder().header("weather", "BAD")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
             &request_parts(Request::builder().header("weather", "bad")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -130,21 +130,21 @@ fn irrelevant_headers_ignored() {
             &request_parts(Request::builder().header("weather", "bad")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(policy
         .before_request(
             &request_parts(Request::builder().header("weather", "shining")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
             &request_parts(Request::builder().header("moon-phase", "full")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -166,7 +166,7 @@ fn absence_is_meaningful() {
             &request_parts(Request::builder().header("weather", "nice")),
             now,
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
@@ -177,11 +177,11 @@ fn absence_is_meaningful() {
             ),
             now,
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(&request_parts(Request::builder()), now)
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -211,7 +211,7 @@ fn all_values_must_match() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
@@ -222,7 +222,7 @@ fn all_values_must_match() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -252,21 +252,21 @@ fn whitespace_is_okay() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
             &request_parts(Request::builder().header("weather", "nice")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(!policy
         .before_request(
             &request_parts(Request::builder().header("sun", "shining")),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
 
 #[test]
@@ -311,7 +311,7 @@ fn order_is_irrelevant() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(policy_one
         .before_request(
@@ -322,7 +322,7 @@ fn order_is_irrelevant() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(policy_two
         .before_request(
@@ -333,7 +333,7 @@ fn order_is_irrelevant() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 
     assert!(policy_two
         .before_request(
@@ -344,5 +344,5 @@ fn order_is_irrelevant() {
             ),
             now
         )
-        .satisfies_without_revalidation());
+        .is_fresh());
 }
