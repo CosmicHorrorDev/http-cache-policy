@@ -788,6 +788,13 @@ pub enum AfterResponse {
     Modified(CachePolicy, http::response::Parts),
 }
 
+impl AfterResponse {
+    /// Returns if this is a `BeforeRequest::Fresh(_)`
+    pub fn is_modified(&self) -> bool {
+        matches!(self, Self::Modified(..))
+    }
+}
+
 fn get_all_comma<'a>(
     all: impl IntoIterator<Item = &'a HeaderValue>,
 ) -> impl Iterator<Item = &'a str> {
