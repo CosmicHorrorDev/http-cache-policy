@@ -1,27 +1,38 @@
-name: CI
-
 on:
   push:
-  - main
+    branches:
+    - main
   pull_request:
+
+name: CI
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "--deny warnings"
 
 jobs:
   test:
     name: Test
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         rust:
           - stable
-          - nightly
-    runs-on: ubuntu-latest
+          - beta
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ matrix.rust }}
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-          args: --all-features
+      - uses: actions/checkout@v4
+      - name: Install ${{ matrix.rust }} toolchain
+        run: |
+          rustup toolchain install ${{ matrix.rust }} --profile minimal --component rustfmt
+          rustup default ${{ matrix.rust }}
+      - name: Check formatting
+        run: |
+          cargo fmt --all -- --check
+      - name: Run the test suite
+        run: |
+          cargo test --all-features
+      - name: Check docs
+        env:
+          RUSTDOCFLAGS: -D warnings
+        run: cargo doc
