@@ -55,12 +55,8 @@ fn pre_check_tolerated() {
         .test_with_cache_control(cache_control);
 
     assert_eq!(
-        get_cached_response(
-            &policy,
-            &req_cache_control("max-stale"),
-            now
-        )
-        .headers[header::CACHE_CONTROL],
+        get_cached_response(&policy, &req_cache_control("max-stale"), now).headers
+            [header::CACHE_CONTROL],
         cache_control
     );
 }
@@ -117,8 +113,7 @@ fn age_not_always_stale() {
             .header(header::CACHE_CONTROL, "max-age=20")
             .header(header::AGE, "15"),
     );
-    Harness::default()
-        .test_with_response(response);
+    Harness::default().test_with_response(response);
 }
 
 #[test]
@@ -128,8 +123,7 @@ fn bogus_age_ignored() {
             .header(header::CACHE_CONTROL, "max-age=20")
             .header(header::AGE, "golden"),
     );
-    Harness::default()
-        .test_with_response(response);
+    Harness::default().test_with_response(response);
 }
 
 #[test]
@@ -140,9 +134,7 @@ fn cache_old_files() {
             .header(header::DATE, now_rfc2822())
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    let policy = Harness::default()
-        .time(now)
-        .test_with_response(response);
+    let policy = Harness::default().time(now).test_with_response(response);
     assert!(policy.time_to_live(now).as_secs() > 100);
 }
 
@@ -210,8 +202,7 @@ fn blank_cache_control_and_pragma_no_cache() {
             .header(header::PRAGMA, "no-cache")
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default()
-        .test_with_response(response);
+    Harness::default().test_with_response(response);
 }
 
 #[test]
@@ -234,7 +225,7 @@ fn observe_private_cache() {
     let _private = Harness::default()
         .assert_time_to_live(1234)
         .options(private_opts())
-    .test_with_response(response);
+        .test_with_response(response);
 }
 
 #[test]
@@ -293,9 +284,7 @@ fn uncacheable_503() {
             .status(503)
             .header(header::CACHE_CONTROL, "public, max-age=0"),
     );
-    Harness::default()
-        .no_store()
-        .test_with_response(response);
+    Harness::default().no_store().test_with_response(response);
 }
 
 #[test]
@@ -315,9 +304,7 @@ fn uncacheable_303() {
             .status(303)
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default()
-        .no_store()
-        .test_with_response(response);
+    Harness::default().no_store().test_with_response(response);
 }
 
 #[test]
@@ -337,9 +324,7 @@ fn uncacheable_412() {
             .status(412)
             .header(header::CACHE_CONTROL, "public, max-age=1000"),
     );
-    Harness::default()
-        .no_store()
-        .test_with_response(response);
+    Harness::default().no_store().test_with_response(response);
 }
 
 #[test]
@@ -370,7 +355,9 @@ fn request_mismatches() {
 
     req.method = Method::POST;
     let mismatch = policy.before_request(&req, now);
-    assert!(matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if !matches));
+    assert!(
+        matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if !matches)
+    );
 }
 
 #[test]
@@ -384,7 +371,9 @@ fn request_matches() {
         .test_with_cache_control("public, max-age=0");
 
     let mismatch = policy.before_request(&req, now);
-    assert!(matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if matches));
+    assert!(
+        matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if matches)
+    );
 }
 
 #[test]

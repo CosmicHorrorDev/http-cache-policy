@@ -93,10 +93,14 @@ impl Harness {
             options,
         } = self;
         let time = time.unwrap_or_else(SystemTime::now);
-        let request = request
-            .unwrap_or_else(|| Request::builder().body(()).unwrap().into_parts().0);
+        let request =
+            request.unwrap_or_else(|| Request::builder().body(()).unwrap().into_parts().0);
         let policy = CachePolicy::new_options(&request, &resp, time, options);
-        assert_eq!(no_store, !policy.is_storable(), "Policy didn't match expected storability");
+        assert_eq!(
+            no_store,
+            !policy.is_storable(),
+            "Policy didn't match expected storability"
+        );
         if no_store {
             assert!(policy.is_stale(time), "no-store always means stale");
         } else {
@@ -107,22 +111,44 @@ impl Harness {
             );
         }
         if let Some(age) = assert_age {
-            assert_eq!(age, policy.age(time).as_secs(), "Policy didn't have expected age");
+            assert_eq!(
+                age,
+                policy.age(time).as_secs(),
+                "Policy didn't have expected age"
+            );
         }
         if let Some(ttl) = assert_time_to_live {
-            assert_eq!(ttl, policy.time_to_live(time).as_secs(), "Policy didn't have expected TTL");
+            assert_eq!(
+                ttl,
+                policy.time_to_live(time).as_secs(),
+                "Policy didn't have expected TTL"
+            );
         }
         if no_store || stale_and_store {
-            assert_eq!(0, policy.time_to_live(time).as_secs(), "Stale entries should have no TTL");
+            assert_eq!(
+                0,
+                policy.time_to_live(time).as_secs(),
+                "Stale entries should have no TTL"
+            );
         }
         policy
     }
 }
 
 fn req_cache_control(s: &str) -> request::Parts {
-    Request::builder().header(header::CACHE_CONTROL, s).body(()).unwrap().into_parts().0
+    Request::builder()
+        .header(header::CACHE_CONTROL, s)
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0
 }
 
 fn resp_cache_control(s: &str) -> response::Parts {
-    Response::builder().header(header::CACHE_CONTROL, s).body(()).unwrap().into_parts().0
+    Response::builder()
+        .header(header::CACHE_CONTROL, s)
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0
 }

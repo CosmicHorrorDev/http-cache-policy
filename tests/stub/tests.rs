@@ -27,13 +27,10 @@ fn assert_cached(should_put: bool, response_code: u16) {
     if 407 == response_code {
         response = response.header(header::PROXY_AUTHENTICATE, "Basic realm=\"protected area\"");
     } else if 401 == response_code {
-        response
-            .headers_mut()
-            .unwrap()
-            .insert(
-                header::WWW_AUTHENTICATE,
-                HeaderValue::from_static("Basic realm=\"protected area\""),
-            );
+        response.headers_mut().unwrap().insert(
+            header::WWW_AUTHENTICATE,
+            HeaderValue::from_static("Basic realm=\"protected area\""),
+        );
     }
 
     let policy = CachePolicy::new_options(
@@ -139,10 +136,7 @@ fn not_when_urls_mismatch() {
     );
 
     assert!(!policy
-        .before_request(
-            &request_parts(Request::builder().uri("/foo?bar")),
-            now
-        )
+        .before_request(&request_parts(Request::builder().uri("/foo?bar")), now)
         .satisfies_without_revalidation());
 }
 
@@ -155,10 +149,7 @@ fn not_when_methods_mismatch() {
     );
 
     assert!(!policy
-        .before_request(
-            &Request::new(()),
-            now
-        )
+        .before_request(&Request::new(()), now)
         .satisfies_without_revalidation());
 }
 
@@ -170,12 +161,7 @@ fn not_when_methods_mismatch_head() {
         &resp_cache_control("max-age=2"),
     );
 
-    assert!(
-        !policy
-            .before_request(
-                &request_parts(Request::builder()),
-                now
-            )
-            .satisfies_without_revalidation()
-    );
+    assert!(!policy
+        .before_request(&request_parts(Request::builder()), now)
+        .satisfies_without_revalidation());
 }

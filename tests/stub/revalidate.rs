@@ -194,12 +194,9 @@ fn skips_weak_validators_on_post() {
         ),
     );
 
-    let headers = get_revalidation_request(
-        &policy,
-        &post_request,
-        now + Duration::from_secs(3600 * 24),
-    )
-    .headers;
+    let headers =
+        get_revalidation_request(&policy, &post_request, now + Duration::from_secs(3600 * 24))
+            .headers;
 
     assert_eq!(
         headers.get(header::IF_NONE_MATCH).unwrap(),
@@ -223,12 +220,9 @@ fn skips_weak_validators_on_post_2() {
         ),
     );
 
-    let headers = get_revalidation_request(
-        &policy,
-        &post_request,
-        now + Duration::from_secs(3600 * 24),
-    )
-    .headers;
+    let headers =
+        get_revalidation_request(&policy, &post_request, now + Duration::from_secs(3600 * 24))
+            .headers;
 
     assert!(!headers.contains_key(header::IF_NONE_MATCH));
     assert!(!headers.contains_key(header::IF_MODIFIED_SINCE));
@@ -251,12 +245,9 @@ fn merges_validators() {
         ),
     );
 
-    let headers = get_revalidation_request(
-        &policy,
-        &post_request,
-        now + Duration::from_secs(3600 * 24),
-    )
-    .headers;
+    let headers =
+        get_revalidation_request(&policy, &post_request, now + Duration::from_secs(3600 * 24))
+            .headers;
 
     assert_eq!(
         headers.get(header::IF_NONE_MATCH).unwrap(),
@@ -440,12 +431,9 @@ fn should_not_send_the_last_modified_value_for_post() {
         ),
     );
 
-    let headers = get_revalidation_request(
-        &policy,
-        &post_request,
-        now + Duration::from_secs(3600 * 24),
-    )
-    .headers;
+    let headers =
+        get_revalidation_request(&policy, &post_request, now + Duration::from_secs(3600 * 24))
+            .headers;
 
     assert!(!headers.contains_key(header::IF_MODIFIED_SINCE));
 }

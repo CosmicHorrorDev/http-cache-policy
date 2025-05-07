@@ -1,10 +1,10 @@
 use http::{header, Method, Request, Response};
 
 use crate::private_opts;
-use crate::Harness;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
+use crate::Harness;
 
 fn public_cacheable_response() -> http::response::Parts {
     response_parts(Response::builder().header(header::CACHE_CONTROL, "public, max-age=222"))
@@ -40,12 +40,9 @@ fn post_cacheable_explicitly() {
 #[test]
 fn public_cacheable_auth_is_ok() {
     Harness::default()
-        .request(
-        request_parts(
-            Request::builder()
-                .header(header::AUTHORIZATION, "test"),
-            )
-        )
+        .request(request_parts(
+            Request::builder().header(header::AUTHORIZATION, "test"),
+        ))
         .test_with_response(public_cacheable_response());
 }
 
@@ -54,8 +51,7 @@ fn private_auth_is_ok() {
     Harness::default()
         .options(private_opts())
         .request(request_parts(
-            Request::builder()
-                .header(header::AUTHORIZATION, "test"),
+            Request::builder().header(header::AUTHORIZATION, "test"),
         ))
         .test_with_response(cacheable_response());
 }
@@ -64,8 +60,7 @@ fn private_auth_is_ok() {
 fn revalidate_auth_is_ok() {
     Harness::default()
         .request(request_parts(
-            Request::builder()
-                .header(header::AUTHORIZATION, "test"),
+            Request::builder().header(header::AUTHORIZATION, "test"),
         ))
         .test_with_cache_control("max-age=80, must-revalidate");
 }
@@ -75,8 +70,7 @@ fn auth_prevents_caching_by_default() {
     Harness::default()
         .no_store()
         .request(request_parts(
-            Request::builder()
-                .header(header::AUTHORIZATION, "test"),
+            Request::builder().header(header::AUTHORIZATION, "test"),
         ))
         .test_with_response(cacheable_response());
 }

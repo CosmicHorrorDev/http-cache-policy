@@ -49,14 +49,8 @@ fn when_expires_is_present() {
 #[test]
 fn when_methods_match() {
     let now = SystemTime::now();
-    let response = &response_parts(
-        Response::builder()
-            .header(header::CACHE_CONTROL, "max-age=2"),
-    );
-    let policy = CachePolicy::new(
-        &request_parts(Request::builder()),
-        response,
-    );
+    let response = &response_parts(Response::builder().header(header::CACHE_CONTROL, "max-age=2"));
+    let policy = CachePolicy::new(&request_parts(Request::builder()), response);
 
     assert!(policy
         .before_request(&request_parts(Request::builder()), now)
@@ -154,10 +148,7 @@ fn not_when_hosts_mismatch() {
 #[test]
 fn when_methods_match_head() {
     let now = SystemTime::now();
-    let response = &response_parts(
-        Response::builder()
-            .header(header::CACHE_CONTROL, "max-age=2"),
-    );
+    let response = &response_parts(Response::builder().header(header::CACHE_CONTROL, "max-age=2"));
     let policy = CachePolicy::new(
         &request_parts(Request::builder().method(Method::HEAD)),
         response,
@@ -172,8 +163,7 @@ fn when_methods_match_head() {
 fn not_when_proxy_revalidating() {
     let now = SystemTime::now();
     let response = &response_parts(
-        Response::builder()
-            .header(header::CACHE_CONTROL, "max-age=2, proxy-revalidate "),
+        Response::builder().header(header::CACHE_CONTROL, "max-age=2, proxy-revalidate "),
     );
     let policy = CachePolicy::new(&request_parts(Request::builder()), response);
 
@@ -186,8 +176,7 @@ fn not_when_proxy_revalidating() {
 fn when_not_a_proxy_revalidating() {
     let now = SystemTime::now();
     let response = &response_parts(
-        Response::builder()
-            .header(header::CACHE_CONTROL, "max-age=2, proxy-revalidate "),
+        Response::builder().header(header::CACHE_CONTROL, "max-age=2, proxy-revalidate "),
     );
     let policy = CachePolicy::new_options(
         &request_parts(Request::builder()),
