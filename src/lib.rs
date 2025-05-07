@@ -1,5 +1,6 @@
 #![warn(missing_docs)]
 #![deny(unconditional_recursion)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! Tells when responses can be reused from a cache, taking into account [HTTP RFC 7234](http://httpwg.org/specs/rfc7234.html) rules for user agents and shared caches.
 //! It's aware of many tricky details such as the `Vary` header, proxy revalidation, and authenticated responses.
 
@@ -947,6 +948,7 @@ impl ResponseLike for http::response::Parts {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "reqwest")))]
 #[cfg(feature = "reqwest")]
 impl RequestLike for reqwest::Request {
     fn uri(&self) -> Uri {
@@ -966,6 +968,7 @@ impl RequestLike for reqwest::Request {
     }
 }
 
+#[cfg_attr(docsrs, doc(cfg(feature = "reqwest")))]
 #[cfg(feature = "reqwest")]
 impl ResponseLike for reqwest::Response {
     fn status(&self) -> StatusCode {

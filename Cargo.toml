@@ -29,8 +29,5 @@ default = ["serde"]
 serde = ["dep:serde", "dep:http-serde"]
 
 [package.metadata.docs.rs]
-targets = ["x86_64-unknown-linux-gnu"]
-rustdoc-args = ["--generate-link-to-definition"]
-
-[badges]
-maintenance = { status = "passively-maintained" }
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
