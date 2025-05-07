@@ -224,8 +224,8 @@ impl CachePolicy {
         // Assume that if someone uses legacy, non-standard uncecessary options they don't understand caching,
         // so there's no point stricly adhering to the blindly copy&pasted directives.
         if opts.ignore_cargo_cult
-            && res_cc.get("pre-check").is_some()
-            && res_cc.get("post-check").is_some()
+            && res_cc.contains_key("pre-check")
+            && res_cc.contains_key("post-check")
         {
             res_cc.remove("pre-check");
             res_cc.remove("post-check");
