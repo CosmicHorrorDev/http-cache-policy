@@ -102,9 +102,7 @@ fn default_expiration_date_fully_cached_for_less_than_24_hours() {
             .header(header::DATE, format_date(-5, 1)),
     );
 
-    let policy = Harness::default()
-        .time(now)
-        .test_with_response(response);
+    let policy = Harness::default().time(now).test_with_response(response);
 
     assert!(policy.time_to_live(now).as_secs() > 4);
 }
@@ -245,16 +243,10 @@ fn request_max_age() {
         .test_with_response(response);
 
     assert!(policy
-        .before_request(
-            &req_cache_control("max-age=90"),
-            now
-        )
+        .before_request(&req_cache_control("max-age=90"), now)
         .satisfies_without_revalidation());
     assert!(!policy
-        .before_request(
-            &req_cache_control("max-age=30"),
-            now
-        )
+        .before_request(&req_cache_control("max-age=30"), now)
         .satisfies_without_revalidation());
 }
 
@@ -268,17 +260,11 @@ fn request_min_fresh() {
         .test_with_cache_control("max-age=60");
 
     assert!(!policy
-        .before_request(
-            &req_cache_control("min-fresh=120"),
-            now
-        )
+        .before_request(&req_cache_control("min-fresh=120"), now)
         .satisfies_without_revalidation());
 
     assert!(policy
-        .before_request(
-            &req_cache_control("min-fresh=10"),
-            now
-        )
+        .before_request(&req_cache_control("min-fresh=10"), now)
         .satisfies_without_revalidation());
 }
 
@@ -298,24 +284,15 @@ fn request_max_stale() {
         .test_with_response(response);
 
     assert!(policy
-        .before_request(
-            &req_cache_control("max-stale=180"),
-            now
-        )
+        .before_request(&req_cache_control("max-stale=180"), now)
         .satisfies_without_revalidation());
 
     assert!(policy
-        .before_request(
-            &req_cache_control("max-stale"),
-            now
-        )
+        .before_request(&req_cache_control("max-stale"), now)
         .satisfies_without_revalidation());
 
     assert!(!policy
-        .before_request(
-            &req_cache_control("max-stale=10"),
-            now
-        )
+        .before_request(&req_cache_control("max-stale=10"), now)
         .satisfies_without_revalidation());
 }
 
@@ -336,17 +313,11 @@ fn request_max_stale_not_honored_with_must_revalidate() {
         .test_with_response(response);
 
     assert!(!policy
-        .before_request(
-            &req_cache_control("max-stale=180"),
-            now
-        )
+        .before_request(&req_cache_control("max-stale=180"), now)
         .satisfies_without_revalidation());
 
     assert!(!policy
-        .before_request(
-            &req_cache_control("max-stale"),
-            now
-        )
+        .before_request(&req_cache_control("max-stale"), now)
         .satisfies_without_revalidation());
 }
 
@@ -378,9 +349,7 @@ fn do_not_cache_partial_response() {
             .header(header::CONTENT_RANGE, "bytes 100-100/200")
             .header(header::CACHE_CONTROL, "max-age=60"),
     );
-    Harness::default()
-        .no_store()
-        .test_with_response(response);
+    Harness::default().no_store().test_with_response(response);
 }
 
 fn format_date(delta: i64, unit: i64) -> String {

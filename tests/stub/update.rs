@@ -9,7 +9,9 @@ use std::time::SystemTime;
 use crate::request_parts;
 use crate::response_parts;
 
-fn simple_request_builder_for_update(additional_headers: Option<HeaderMap>) -> http::request::Builder {
+fn simple_request_builder_for_update(
+    additional_headers: Option<HeaderMap>,
+) -> http::request::Builder {
     let mut builder = Request::builder()
         .header(header::HOST, "www.w3c.org")
         .header(header::CONNECTION, "close")

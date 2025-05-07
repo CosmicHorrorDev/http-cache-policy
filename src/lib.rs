@@ -250,7 +250,17 @@ impl CachePolicy {
             res_cc.insert("no-cache".into(), None);
         }
 
-        Self { req, res, uri, status, method, opts, res_cc, req_cc, response_time }
+        Self {
+            req,
+            res,
+            uri,
+            status,
+            method,
+            opts,
+            res_cc,
+            req_cc,
+            response_time,
+        }
     }
 
     /// Returns `true` if the response can be stored in a cache. If it's
@@ -476,7 +486,8 @@ impl CachePolicy {
             .status(self.status)
             .body(())
             .unwrap()
-            .into_parts().0;
+            .into_parts()
+            .0;
         parts.headers = headers;
         parts
     }
@@ -674,7 +685,8 @@ impl CachePolicy {
             .uri(self.uri.clone())
             .body(())
             .unwrap()
-            .into_parts().0;
+            .into_parts()
+            .0;
         parts.headers = headers;
         parts
     }
@@ -902,7 +914,10 @@ impl ResponseLike for http::response::Parts {
 #[cfg(feature = "reqwest")]
 impl RequestLike for reqwest::Request {
     fn uri(&self) -> Uri {
-        self.url().as_str().parse().expect("Uri and Url are incompatible!?")
+        self.url()
+            .as_str()
+            .parse()
+            .expect("Uri and Url are incompatible!?")
     }
     fn is_same_uri(&self, other: &Uri) -> bool {
         self.url().as_str() == other

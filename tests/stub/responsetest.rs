@@ -22,12 +22,15 @@ macro_rules! headers(
 );
 
 fn req() -> request::Parts {
-    Request::get("http://test.example.com/").body(()).unwrap().into_parts().0
+    Request::get("http://test.example.com/")
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0
 }
 
 fn harness() -> Harness {
-    Harness::default()
-        .request(req())
+    Harness::default().request(req())
 }
 
 #[test]
@@ -70,19 +73,13 @@ fn iis() {
 fn pre_check_tolerated() {
     let now = SystemTime::now();
     let cc = "pre-check=0, post-check=0, no-store, no-cache, max-age=100";
-    let cache = harness()
-        .no_store()
-        .time(now)
-        .test_with_cache_control(cc);
+    let cache = harness().no_store().time(now).test_with_cache_control(cc);
     let mut later_req = req();
-    later_req.headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("max-stale"));
+    later_req
+        .headers
+        .insert(header::CACHE_CONTROL, HeaderValue::from_static("max-stale"));
     assert_eq!(
-        get_cached_response(
-            &cache,
-            &later_req,
-            now
-        )
-        .headers()[header::CACHE_CONTROL],
+        get_cached_response(&cache, &later_req, now).headers()[header::CACHE_CONTROL],
         cc
     );
 }
@@ -115,8 +112,7 @@ fn pre_check_poison() {
     assert!(get_cached_response(
         &cache,
         &request_parts(
-            Request::get("http://test.example.com/")
-                .header(header::CACHE_CONTROL, "max-stale")
+            Request::get("http://test.example.com/").header(header::CACHE_CONTROL, "max-stale")
         ),
         now
     )
@@ -197,9 +193,7 @@ fn cache_expires_no_date() {
         "cache-control": "public",
         "expires": date_str(now + Duration::from_secs(3600)),
     };
-    let cache = harness()
-        .time(now)
-        .test_with_response(response);
+    let cache = harness().time(now).test_with_response(response);
     assert!(cache.time_to_live(now).as_secs() > 3595);
     assert!(cache.time_to_live(now).as_secs() < 3605);
 }
@@ -231,9 +225,7 @@ fn age_can_make_stale() {
         "cache-control": "max-age=100",
         "age": "101",
     };
-    harness()
-        .stale_and_store()
-        .test_with_response(response);
+    harness().stale_and_store().test_with_response(response);
 }
 
 #[test]
@@ -339,9 +331,7 @@ fn no_store() {
 #[test]
 fn observe_private_cache() {
     let cc = "private, max-age=1234";
-    harness()
-        .no_store()
-        .test_with_cache_control(cc);
+    harness().no_store().test_with_cache_control(cc);
     harness()
         .assert_time_to_live(1234)
         .options(private_opts())
@@ -370,7 +360,9 @@ fn do_share_cookies_if_immutable() {
         "set-cookie": "foo=bar",
         "cache-control": "immutable, max-age=99",
     };
-    harness().assert_time_to_live(99).test_with_response(response);
+    harness()
+        .assert_time_to_live(99)
+        .test_with_response(response);
 }
 
 #[test]
@@ -379,7 +371,9 @@ fn cache_explicitly_public_cookie() {
         "set-cookie": "foo=bar",
         "cache-control": "max-age=5, public",
     };
-    harness().assert_time_to_live(5).test_with_response(response);
+    harness()
+        .assert_time_to_live(5)
+        .test_with_response(response);
 }
 
 #[test]
@@ -430,7 +424,9 @@ fn expired_expires_cached_with_max_age() {
         "cache-control": "public, max-age=9999",
         "expires": "Sat, 07 May 2016 15:35:18 GMT",
     };
-    harness().assert_time_to_live(9999).test_with_response(response);
+    harness()
+        .assert_time_to_live(9999)
+        .test_with_response(response);
 }
 
 #[test]
@@ -439,7 +435,9 @@ fn expired_expires_cached_with_s_maxage() {
         "cache-control": "public, s-maxage=9999",
         "expires": "Sat, 07 May 2016 15:35:18 GMT",
     };
-    let _proxy = harness().assert_time_to_live(9999).test_with_response(response.clone());
+    let _proxy = harness()
+        .assert_time_to_live(9999)
+        .test_with_response(response.clone());
     let _ua = harness()
         .stale_and_store()
         .options(private_opts())
@@ -453,7 +451,10 @@ fn max_age_wins_over_future_expires() {
         "cache-control": "public, max-age=333",
         "expires": date_str(now + Duration::from_secs(3600)),
     };
-    harness().assert_time_to_live(333).time(now).test_with_response(response);
+    harness()
+        .assert_time_to_live(333)
+        .time(now)
+        .test_with_response(response);
 }
 
 #[test]
@@ -477,11 +478,7 @@ fn remove_hop_headers() {
     assert!(!h.contains_key("te"));
     assert!(!h.contains_key("oompa"));
     assert_eq!(h["cache-control"], "public, max-age=333");
-    assert_ne!(
-        h["date"],
-        "now",
-        "updated age requires updated date"
-    );
+    assert_ne!(h["date"], "now", "updated age requires updated date");
     assert_eq!(h["custom"].to_str().unwrap(), "header");
     assert_eq!(h["age"].to_str().unwrap(), "11");
 }
