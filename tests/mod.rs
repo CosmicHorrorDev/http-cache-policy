@@ -4,13 +4,13 @@
 use std::time::SystemTime;
 
 use http::{header, request, response, Request, Response};
-use http_cache_semantics::{CacheOptions, CachePolicy, ResponseLike};
+use http_cache_semantics::{CacheOptions, CachePolicy, Privacy, ResponseLike};
 
 mod stub;
 
 fn private_opts() -> CacheOptions {
     CacheOptions {
-        shared: false,
+        privacy: Privacy::Private,
         ..Default::default()
     }
 }

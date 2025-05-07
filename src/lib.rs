@@ -107,6 +107,36 @@ fn format_cache_control(cc: &CacheControl) -> String {
     out
 }
 
+/// Indicates the privacy of the cache
+///
+/// This influences the impact of things like the `private` or `s-maxage` directives or the
+/// [`http::header::AUTHORIZATION`] header impact storability.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub enum Privacy {
+    /// A shared cache (default) e.g. for proxy or some other multi-user cache
+    ///
+    /// The `CachePolicy` will be evaluated from the perspective of a shared cache
+    #[default]
+    Shared,
+    /// A private cache e.g. for a web browser
+    ///
+    /// The `CachePolicy` will be evaluated from the perspective of a shared cache.
+    Private,
+}
+
+impl Privacy {
+    /// If the privacy is `Privacy::Shared`
+    pub fn is_shared(self) -> bool {
+        self == Self::Shared
+    }
+
+    /// If the privacy is `Privacy::Private`
+    pub fn is_private(self) -> bool {
+        !self.is_shared()
+    }
+}
+
 /// Configuration options which control behavior of the cache. Use with `CachePolicy::new_options()`.
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -117,7 +147,7 @@ pub struct CacheOptions {
     /// evaluated from a perspective of a single-user cache (i.e. `private` is
     /// cacheable and `s-maxage` is ignored). `shared: true` is required
     /// for proxies and multi-user caches.
-    pub shared: bool,
+    pub privacy: Privacy,
     /// `cache_heuristic` is a fraction of response's age that is used as a
     /// fallback cache duration. The default is 0.1 (10%), e.g. if a file
     /// hasn't been modified for 100 days, it'll be cached for 100×0.1 = 10
@@ -139,7 +169,7 @@ pub struct CacheOptions {
 impl Default for CacheOptions {
     fn default() -> Self {
         Self {
-            shared: true,
+            privacy: Privacy::default(),
             cache_heuristic: 0.1, // 10% matches IE
             immutable_min_time_to_live: Duration::from_secs(24 * 3600),
             ignore_cargo_cult: false,
@@ -278,9 +308,9 @@ impl CachePolicy {
             // the "no-store" cache directive does not appear in request or response header fields, and
             !self.res_cc.contains_key("no-store") &&
             // the "private" response directive does not appear in the response, if the cache is shared, and
-            (!self.opts.shared || !self.res_cc.contains_key("private")) &&
+            (self.opts.privacy == Privacy::Private || !self.res_cc.contains_key("private")) &&
             // the Authorization header field does not appear in the request, if the cache is shared,
-            (!self.opts.shared ||
+            (self.opts.privacy == Privacy::Private ||
                 !self.req.contains_key("authorization") ||
                 self.allows_storing_authenticated()) &&
             // the response either:
@@ -290,7 +320,7 @@ impl CachePolicy {
                 // contains a s-maxage response directive and the cache is shared, or
                 // contains a public response directive.
                 self.res_cc.contains_key("max-age") ||
-                (self.opts.shared && self.res_cc.contains_key("s-maxage")) ||
+                (self.opts.privacy == Privacy::Shared && self.res_cc.contains_key("s-maxage")) ||
                 self.res_cc.contains_key("public") ||
                 // has a status code that is defined as cacheable by default
                 STATUS_CODE_CACHEABLE_BY_DEFAULT.contains(&self.status.as_u16()))
@@ -298,7 +328,7 @@ impl CachePolicy {
 
     fn has_explicit_expiration(&self) -> bool {
         // 4.2.1 Calculating Freshness Lifetime
-        (self.opts.shared && self.res_cc.contains_key("s-maxage"))
+        (self.opts.privacy == Privacy::Shared && self.res_cc.contains_key("s-maxage"))
             || self.res_cc.contains_key("max-age")
             || self.res.contains_key("expires")
     }
@@ -536,7 +566,7 @@ impl CachePolicy {
 
         // Shared responses with cookies are cacheable according to the RFC, but IMHO it'd be unwise to do so by default
         // so this implementation requires explicit opt-in via public header
-        if self.opts.shared
+        if self.opts.privacy == Privacy::Shared
             && (self.res.contains_key("set-cookie")
                 && !self.res_cc.contains_key("public")
                 && !self.res_cc.contains_key("immutable"))
@@ -548,7 +578,7 @@ impl CachePolicy {
             return Duration::from_secs(0);
         }
 
-        if self.opts.shared {
+        if self.opts.privacy == Privacy::Shared {
             if self.res_cc.contains_key("proxy-revalidate") {
                 return Duration::from_secs(0);
             }
