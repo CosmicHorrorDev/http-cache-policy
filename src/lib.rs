@@ -127,12 +127,19 @@ pub enum Privacy {
 }
 
 impl Privacy {
-    /// If the privacy is `Privacy::Shared`
+    /// The default privacy [`Privacy::Shared`]
+    pub const fn default() -> Self {
+        Privacy::Shared
+    }
+}
+
+impl Privacy {
+    /// If the privacy is [`Privacy::Shared`]
     pub fn is_shared(self) -> bool {
         self == Self::Shared
     }
 
-    /// If the privacy is `Privacy::Private`
+    /// If the privacy is [`Privacy::Private`]
     pub fn is_private(self) -> bool {
         !self.is_shared()
     }
@@ -167,14 +174,69 @@ pub struct CacheOptions {
     pub ignore_cargo_cult: bool,
 }
 
-impl Default for CacheOptions {
-    fn default() -> Self {
+impl CacheOptions {
+    /// The default cache options
+    ///
+    /// See the various fields' docs for more details.
+    ///
+    /// | field | value |
+    /// | :---: | :--- |
+    /// | [`privacy`][Self::privacy] | [`Privacy::Shared`] |
+    /// | [`cache_heuristic`][Self::cache_heuristic] | 10% of the time since last modified |
+    /// | [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] | 24 hours |
+    /// | [`ignore_cargo_cult`][Self::ignore_cargo_cult] | [`true`] |
+    pub const fn default() -> Self {
         Self {
             privacy: Privacy::default(),
             cache_heuristic: 0.1, // 10% matches IE
             immutable_min_time_to_live: Duration::from_secs(24 * 3600),
             ignore_cargo_cult: false,
         }
+    }
+
+    /// Set the cache privacy
+    #[must_use]
+    pub const fn privacy(self, privacy: Privacy) -> Self {
+        Self { privacy, ..self }
+    }
+
+    /// Sets the cache's last modified freshness heuristic
+    ///
+    /// See [`cache_heuristic`][Self::cache_heuristic] for more details.
+    #[must_use]
+    pub const fn cache_heuristic(self, heuristic: f32) -> Self {
+        Self {
+            cache_heuristic: heuristic,
+            ..self
+        }
+    }
+
+    /// Sets the default time-to-live for `immutable`
+    ///
+    /// See [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] for more details.
+    #[must_use]
+    pub const fn immutable_min_time_to_live(self, ttl: Duration) -> Self {
+        Self {
+            immutable_min_time_to_live: ttl,
+            ..self
+        }
+    }
+
+    /// Ignores the effect of some ill-advised directive usage
+    ///
+    /// See [`ignore_cargo_cult`][Self::ignore_cargo_cult] for more details.
+    #[must_use]
+    pub const fn ignore_cargo_cult(self, ignore: bool) -> Self {
+        Self {
+            ignore_cargo_cult: ignore,
+            ..self
+        }
+    }
+}
+
+impl Default for CacheOptions {
+    fn default() -> Self {
+        Self::default()
     }
 }
 
