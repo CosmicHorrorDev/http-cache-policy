@@ -1,3 +1,4 @@
+use http::StatusCode;
 use http::{header, Method, Request, Response};
 use http_cache_semantics::CacheOptions;
 use http_cache_semantics::CachePolicy;
@@ -99,7 +100,7 @@ fn age_can_make_stale() {
     let response = response_parts(
         Response::builder()
             .header(header::CACHE_CONTROL, "max-age=100")
-            .header(header::AGE, "101"),
+            .header(header::AGE, 101),
     );
     Harness::default()
         .stale_and_store()
@@ -111,7 +112,7 @@ fn age_not_always_stale() {
     let response = response_parts(
         Response::builder()
             .header(header::CACHE_CONTROL, "max-age=20")
-            .header(header::AGE, "15"),
+            .header(header::AGE, 15),
     );
     Harness::default().test_with_response(response);
 }
@@ -278,50 +279,50 @@ fn miss_max_age_equals_zero() {
 }
 
 #[test]
-fn uncacheable_503() {
+fn uncacheable_503_service_unavailable() {
     let response = response_parts(
         Response::builder()
-            .status(503)
+            .status(StatusCode::SERVICE_UNAVAILABLE)
             .header(header::CACHE_CONTROL, "public, max-age=0"),
     );
     Harness::default().no_store().test_with_response(response);
 }
 
 #[test]
-fn cacheable_301() {
+fn cacheable_301_moved_permanently() {
     let response = response_parts(
         Response::builder()
-            .status(301)
+            .status(StatusCode::MOVED_PERMANENTLY)
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
     Harness::default().test_with_response(response);
 }
 
 #[test]
-fn uncacheable_303() {
+fn uncacheable_303_see_other() {
     let response = response_parts(
         Response::builder()
-            .status(303)
+            .status(StatusCode::SEE_OTHER)
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
     Harness::default().no_store().test_with_response(response);
 }
 
 #[test]
-fn cacheable_303() {
+fn cacheable_303_see_other() {
     let response = response_parts(
         Response::builder()
-            .status(303)
+            .status(StatusCode::SEE_OTHER)
             .header(header::CACHE_CONTROL, "max-age=1000"),
     );
     Harness::default().test_with_response(response);
 }
 
 #[test]
-fn uncacheable_412() {
+fn uncacheable_412_precondition_failed() {
     let response = response_parts(
         Response::builder()
-            .status(412)
+            .status(StatusCode::PRECONDITION_FAILED)
             .header(header::CACHE_CONTROL, "public, max-age=1000"),
     );
     Harness::default().no_store().test_with_response(response);
