@@ -9,9 +9,8 @@ use http::Request;
 use http::Response;
 use http_cache_semantics::*;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::OffsetDateTime;
 
+use crate::format_date;
 use crate::private_opts;
 use crate::request_parts;
 use crate::resp_cache_control;
@@ -96,14 +95,6 @@ fn ok_http_response_caching_by_response_code() {
     assert_cached(false, 504);
     assert_cached(false, 505);
     assert_cached(false, 506);
-}
-
-fn format_date(delta: i64, unit: i64) -> String {
-    let now = OffsetDateTime::now_utc();
-    let timestamp = now.unix_timestamp() + delta * unit;
-
-    let date = OffsetDateTime::from_unix_timestamp(timestamp).unwrap();
-    date.format(&Rfc2822).unwrap()
 }
 
 #[test]

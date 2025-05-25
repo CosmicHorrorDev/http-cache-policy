@@ -1,12 +1,26 @@
 //! Group all of the integration tests into a single module so that they can share utilities and
 //! compile in a single binary
 
-use std::time::SystemTime;
+use std::time::{Duration, SystemTime};
 
 use http::{header, request, response, Request, Response};
 use http_cache_semantics::{CacheOptions, CachePolicy, Privacy, ResponseLike};
 
 mod stub;
+
+fn format_date(delta: i64, unit: i64) -> String {
+    let now = SystemTime::now();
+    let now: i64 = now
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+        .try_into()
+        .unwrap();
+    let timestamp = (now + delta * unit).try_into().unwrap();
+    let timestamp = SystemTime::UNIX_EPOCH + Duration::from_secs(timestamp);
+
+    httpdate::fmt_http_date(timestamp)
+}
 
 fn private_opts() -> CacheOptions {
     CacheOptions {

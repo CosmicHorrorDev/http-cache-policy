@@ -1,9 +1,7 @@
 use http::{header, Method, Request, Response};
 use http_cache_semantics::CachePolicy;
+use std::time::Duration;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::Duration;
-use time::OffsetDateTime;
 
 use crate::private_opts;
 use crate::request_parts;
@@ -28,11 +26,7 @@ fn when_urls_match() {
 #[test]
 fn when_expires_is_present() {
     let now = SystemTime::now();
-    let two_seconds_later = OffsetDateTime::now_utc()
-        .checked_add(Duration::seconds(2))
-        .unwrap()
-        .format(&Rfc2822)
-        .unwrap();
+    let two_seconds_later = httpdate::fmt_http_date(now + Duration::from_secs(2));
     let response = &response_parts(
         Response::builder()
             .status(302)

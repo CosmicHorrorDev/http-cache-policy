@@ -15,8 +15,6 @@ use std::collections::hash_map::Entry;
 use std::collections::HashMap;
 use std::time::Duration;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::OffsetDateTime;
 
 // rfc7231 6.1
 const STATUS_CODE_CACHEABLE_BY_DEFAULT: &[u16] =
@@ -565,14 +563,13 @@ impl CachePolicy {
                 HeaderValue::from_static(r#"113 - "rfc7234 5.5.4""#),
             );
         }
-        let date = OffsetDateTime::from(now);
         headers.insert(
             "age",
             HeaderValue::from_str(&age.as_secs().to_string()).unwrap(),
         );
         headers.insert(
             "date",
-            HeaderValue::from_str(&date.format(&Rfc2822).unwrap()).unwrap(),
+            HeaderValue::from_str(&httpdate::fmt_http_date(now)).unwrap(),
         );
 
         let mut parts = Response::builder()
@@ -589,10 +586,7 @@ impl CachePolicy {
         let date = self
             .res
             .get_str("date")
-            .and_then(|d| OffsetDateTime::parse(d, &Rfc2822).ok())
-            .and_then(|d| {
-                SystemTime::UNIX_EPOCH.checked_add(Duration::from_secs(d.unix_timestamp() as u64))
-            });
+            .and_then(|date| httpdate::parse_http_date(date).ok());
         date.unwrap_or(self.response_time)
     }
 
@@ -664,12 +658,10 @@ impl CachePolicy {
 
         let server_date = self.raw_server_date();
         if let Some(expires) = self.res.get_str("expires") {
-            return match OffsetDateTime::parse(expires, &Rfc2822) {
+            return match httpdate::parse_http_date(expires) {
                 // A cache recipient MUST interpret invalid date formats, especially the value "0", as representing a time in the past (i.e., "already expired").
                 Err(_) => Duration::from_secs(0),
                 Ok(expires) => {
-                    let expires = SystemTime::UNIX_EPOCH
-                        + Duration::from_secs(expires.unix_timestamp().max(0) as _);
                     return default_min_ttl
                         .max(expires.duration_since(server_date).unwrap_or_default());
                 }
@@ -677,9 +669,7 @@ impl CachePolicy {
         }
 
         if let Some(last_modified) = self.res.get_str("last-modified") {
-            if let Ok(last_modified) = OffsetDateTime::parse(last_modified, &Rfc2822) {
-                let last_modified = SystemTime::UNIX_EPOCH
-                    + Duration::from_secs(last_modified.unix_timestamp().max(0) as _);
+            if let Ok(last_modified) = httpdate::parse_http_date(last_modified) {
                 if let Ok(diff) = server_date.duration_since(last_modified) {
                     let secs_left = diff.as_secs() as f64 * f64::from(self.opts.cache_heuristic);
                     return default_min_ttl.max(Duration::from_secs(secs_left as _));

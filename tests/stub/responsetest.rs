@@ -2,8 +2,6 @@ use http::*;
 use http_cache_semantics::*;
 use std::time::Duration;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::OffsetDateTime;
 
 use crate::Harness;
 
@@ -163,12 +161,7 @@ fn remove_hop_headers() {
 }
 
 fn date_str(now: SystemTime) -> String {
-    let timestamp = now
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-    let date = OffsetDateTime::from_unix_timestamp(timestamp as i64).unwrap();
-    date.format(&Rfc2822).unwrap()
+    httpdate::fmt_http_date(now)
 }
 
 fn get_cached_response(
