@@ -2,12 +2,12 @@ use std::time::SystemTime;
 
 use http::{header, Method, Request, Response};
 
+use crate::harness;
 use crate::private_opts;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::resp_cache_control;
 use crate::response_parts;
-use crate::Harness;
 
 fn public_cacheable_response() -> http::response::Parts {
     response_parts(Response::builder().header(header::CACHE_CONTROL, "public, max-age=222"))
@@ -19,7 +19,7 @@ fn cacheable_response() -> http::response::Parts {
 
 #[test]
 fn no_store_kills_cache() {
-    Harness::default()
+    harness()
         .no_store()
         .request(req_cache_control("no-store"))
         .test_with_response(public_cacheable_response());
@@ -27,7 +27,7 @@ fn no_store_kills_cache() {
 
 #[test]
 fn post_not_cacheable_by_default() {
-    Harness::default()
+    harness()
         .no_store()
         .request(request_parts(Request::builder().method(Method::POST)))
         .test_with_cache_control("public");
@@ -35,14 +35,14 @@ fn post_not_cacheable_by_default() {
 
 #[test]
 fn post_cacheable_explicitly() {
-    Harness::default()
+    harness()
         .request(request_parts(Request::builder().method(Method::POST)))
         .test_with_response(public_cacheable_response());
 }
 
 #[test]
 fn public_cacheable_auth_is_ok() {
-    Harness::default()
+    harness()
         .request(request_parts(
             Request::builder().header(header::AUTHORIZATION, "test"),
         ))
@@ -51,7 +51,7 @@ fn public_cacheable_auth_is_ok() {
 
 #[test]
 fn private_auth_is_ok() {
-    Harness::default()
+    harness()
         .options(private_opts())
         .request(request_parts(
             Request::builder().header(header::AUTHORIZATION, "test"),
@@ -61,7 +61,7 @@ fn private_auth_is_ok() {
 
 #[test]
 fn revalidate_auth_is_ok() {
-    Harness::default()
+    harness()
         .request(request_parts(
             Request::builder().header(header::AUTHORIZATION, "test"),
         ))
@@ -70,7 +70,7 @@ fn revalidate_auth_is_ok() {
 
 #[test]
 fn auth_prevents_caching_by_default() {
-    Harness::default()
+    harness()
         .no_store()
         .request(request_parts(
             Request::builder().header(header::AUTHORIZATION, "test"),
@@ -81,9 +81,7 @@ fn auth_prevents_caching_by_default() {
 #[test]
 fn no_cache_bypasses_cache() {
     let now = SystemTime::now();
-    let policy = Harness::default()
-        .time(now)
-        .test_with_response(cacheable_response());
+    let policy = harness().time(now).test_with_response(cacheable_response());
     // an innocuous cache-control directive is still fresh...
     assert!(policy
         .before_request(&req_cache_control("no-transform"), now)
@@ -94,7 +92,7 @@ fn no_cache_bypasses_cache() {
         .is_fresh());
 
     // And again with an immutable response
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .test_with_response(resp_cache_control("immutable, max-age=3600"));
     assert!(policy

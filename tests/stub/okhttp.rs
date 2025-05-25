@@ -4,11 +4,11 @@ use http_cache_semantics::CachePolicy;
 use std::time::SystemTime;
 
 use crate::format_date;
+use crate::harness;
 use crate::private_opts;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
-use crate::Harness;
 
 fn assert_cached(should_put: bool, response_code: u16) {
     let now = SystemTime::now();
@@ -101,7 +101,7 @@ fn default_expiration_date_fully_cached_for_less_than_24_hours() {
             .header(header::DATE, format_date(-5, 1)),
     );
 
-    let policy = Harness::default().time(now).test_with_response(response);
+    let policy = harness().time(now).test_with_response(response);
 
     assert!(policy.time_to_live(now).as_secs() > 4);
 }
@@ -114,7 +114,7 @@ fn default_expiration_date_fully_cached_for_more_than_24_hours() {
             .header(header::LAST_MODIFIED, format_date(-105, 3600 * 24))
             .header(header::DATE, format_date(-5, 3600 * 24)),
     );
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .options(private_opts())
         .test_with_response(response);
@@ -131,7 +131,7 @@ fn max_age_in_the_past_with_date_header_but_no_last_modified_header() {
             .header(header::AGE, 120)
             .header(header::CACHE_CONTROL, "max-age=60"),
     );
-    Harness::default()
+    harness()
         .stale_and_store()
         .options(private_opts())
         .test_with_response(response);
@@ -145,7 +145,7 @@ fn max_age_preferred_over_lower_shared_max_age() {
             .header(header::CACHE_CONTROL, "s-maxage=60, max-age=180"),
     );
 
-    Harness::default()
+    harness()
         .assert_time_to_live(180)
         .options(private_opts())
         .test_with_response(response);
@@ -158,7 +158,7 @@ fn max_age_preferred_over_higher_max_age() {
             .header(header::AGE, 3 * 60)
             .header(header::CACHE_CONTROL, "s-maxage=60, max-age=180"),
     );
-    Harness::default()
+    harness()
         .stale_and_store()
         .options(private_opts())
         .test_with_response(response);
@@ -169,7 +169,7 @@ fn request_method_not_cached(method: Method) {
     let response =
         response_parts(Response::builder().header(header::EXPIRES, format_date(1, 3600)));
 
-    Harness::default()
+    harness()
         .no_store()
         .options(private_opts())
         .request(request)
@@ -206,7 +206,7 @@ fn etag_and_expiration_date_in_the_future() {
             .header(header::EXPIRES, format_date(1, 3600)),
     );
 
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .options(private_opts())
         .test_with_response(response);
@@ -216,7 +216,7 @@ fn etag_and_expiration_date_in_the_future() {
 
 #[test]
 fn client_side_no_store() {
-    Harness::default()
+    harness()
         .no_store()
         .options(private_opts())
         .request(req_cache_control("no-store"))
@@ -234,7 +234,7 @@ fn request_max_age() {
             .header(header::EXPIRES, format_date(1, 3600)),
     );
 
-    let policy = Harness::default()
+    let policy = harness()
         .assert_age(60)
         .assert_time_to_live(3000)
         .time(now)
@@ -253,7 +253,7 @@ fn request_max_age() {
 fn request_min_fresh() {
     let now = SystemTime::now();
 
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .options(private_opts())
         .test_with_cache_control("max-age=60");
@@ -276,7 +276,7 @@ fn request_max_stale() {
             .header(header::CACHE_CONTROL, "max-age=120")
             .header(header::AGE, 4 * 60),
     );
-    let policy = Harness::default()
+    let policy = harness()
         .stale_and_store()
         .time(now)
         .options(private_opts())
@@ -303,7 +303,7 @@ fn request_max_stale_not_honored_with_must_revalidate() {
             .header(header::AGE, 4 * 60),
     );
 
-    let policy = Harness::default()
+    let policy = harness()
         .stale_and_store()
         .time(now)
         .options(private_opts())
@@ -326,7 +326,7 @@ fn get_headers_deletes_cached_100_level_warnings() {
             .header("cache-control", "immutable")
             .header(header::WARNING, "199 test danger, 200 ok ok"),
     );
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .request(req_cache_control("max-stale"))
         .test_with_response(response);
@@ -346,7 +346,7 @@ fn do_not_cache_partial_response() {
             .header(header::CONTENT_RANGE, "bytes 100-100/200")
             .header(header::CACHE_CONTROL, "max-age=60"),
     );
-    Harness::default().no_store().test_with_response(response);
+    harness().no_store().test_with_response(response);
 }
 
 fn get_cached_response(

@@ -37,6 +37,10 @@ fn response_parts(builder: http::response::Builder) -> http::response::Parts {
     builder.body(()).unwrap().into_parts().0
 }
 
+fn harness() -> Harness {
+    Harness::default()
+}
+
 #[derive(Default)]
 struct Harness {
     // assertion toggles
