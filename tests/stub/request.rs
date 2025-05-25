@@ -1,8 +1,11 @@
+use std::time::SystemTime;
+
 use http::{header, Method, Request, Response};
 
 use crate::private_opts;
 use crate::req_cache_control;
 use crate::request_parts;
+use crate::resp_cache_control;
 use crate::response_parts;
 use crate::Harness;
 
@@ -73,4 +76,31 @@ fn auth_prevents_caching_by_default() {
             Request::builder().header(header::AUTHORIZATION, "test"),
         ))
         .test_with_response(cacheable_response());
+}
+
+#[test]
+fn no_cache_bypasses_cache() {
+    let now = SystemTime::now();
+    let policy = Harness::default()
+        .time(now)
+        .test_with_response(cacheable_response());
+    // an innocuous cache-control directive is still fresh...
+    assert!(policy
+        .before_request(&req_cache_control("no-transform"), now)
+        .is_fresh());
+    // ...while `no-cache` is not
+    assert!(!policy
+        .before_request(&req_cache_control("no-cache"), now)
+        .is_fresh());
+
+    // And again with an immutable response
+    let policy = Harness::default()
+        .time(now)
+        .test_with_response(resp_cache_control("immutable, max-age=3600"));
+    assert!(policy
+        .before_request(&req_cache_control("no-transform"), now)
+        .is_fresh());
+    assert!(!policy
+        .before_request(&req_cache_control("no-cache"), now)
+        .is_fresh());
 }
