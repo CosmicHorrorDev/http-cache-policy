@@ -4,11 +4,11 @@ use http_cache_semantics::CacheOptions;
 use http_cache_semantics::CachePolicy;
 use std::time::{Duration, SystemTime};
 
+use crate::harness;
 use crate::private_opts;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
-use crate::Harness;
 
 fn now_rfc2822() -> String {
     httpdate::fmt_http_date(SystemTime::now())
@@ -16,28 +16,28 @@ fn now_rfc2822() -> String {
 
 #[test]
 fn simple_miss() {
-    Harness::default()
+    harness()
         .stale_and_store()
         .test_with_response(response_parts(Response::builder()));
 }
 
 #[test]
 fn simple_hit() {
-    Harness::default()
+    harness()
         .assert_time_to_live(999999)
         .test_with_cache_control("public, max-age=999999");
 }
 
 #[test]
 fn quoted_syntax() {
-    Harness::default()
+    harness()
         .assert_time_to_live(678)
         .test_with_cache_control("  max-age = \"678\"      ");
 }
 
 #[test]
 fn iis() {
-    Harness::default()
+    harness()
         .assert_time_to_live(259200)
         .options(private_opts())
         .test_with_cache_control("private, public, max-age=259200");
@@ -47,7 +47,7 @@ fn iis() {
 fn pre_check_tolerated() {
     let now = SystemTime::now();
     let cache_control = "pre-check=0, post-check=0, no-store, no-cache, max-age=100";
-    let policy = Harness::default()
+    let policy = harness()
         .no_store()
         .time(now)
         .test_with_cache_control(cache_control);
@@ -70,7 +70,7 @@ fn pre_check_poison() {
             .header(header::PRAGMA, "no-cache"),
     );
 
-    let policy = Harness::default()
+    let policy = harness()
         .assert_time_to_live(100)
         .time(now)
         .options(CacheOptions {
@@ -99,9 +99,7 @@ fn age_can_make_stale() {
             .header(header::CACHE_CONTROL, "max-age=100")
             .header(header::AGE, 101),
     );
-    Harness::default()
-        .stale_and_store()
-        .test_with_response(response);
+    harness().stale_and_store().test_with_response(response);
 }
 
 #[test]
@@ -111,7 +109,7 @@ fn age_not_always_stale() {
             .header(header::CACHE_CONTROL, "max-age=20")
             .header(header::AGE, 15),
     );
-    Harness::default().test_with_response(response);
+    harness().test_with_response(response);
 }
 
 #[test]
@@ -121,7 +119,7 @@ fn bogus_age_ignored() {
             .header(header::CACHE_CONTROL, "max-age=20")
             .header(header::AGE, "golden"),
     );
-    Harness::default().test_with_response(response);
+    harness().test_with_response(response);
 }
 
 #[test]
@@ -132,20 +130,20 @@ fn cache_old_files() {
             .header(header::DATE, now_rfc2822())
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    let policy = Harness::default().time(now).test_with_response(response);
+    let policy = harness().time(now).test_with_response(response);
     assert!(policy.time_to_live(now).as_secs() > 100);
 }
 
 #[test]
 fn immutable_simple_hit() {
-    Harness::default()
+    harness()
         .assert_time_to_live(999999)
         .test_with_cache_control("immutable, max-age=999999");
 }
 
 #[test]
 fn immutable_can_expire() {
-    Harness::default()
+    harness()
         .stale_and_store()
         .test_with_cache_control("immutable, max-age=0");
 }
@@ -158,7 +156,7 @@ fn cache_immutable_files() {
             .header(header::CACHE_CONTROL, "immutable")
             .header(header::LAST_MODIFIED, now_rfc2822()),
     );
-    Harness::default()
+    harness()
         .assert_time_to_live(CacheOptions::default().immutable_min_time_to_live.as_secs())
         .test_with_response(response);
 }
@@ -171,7 +169,7 @@ fn immutable_can_be_off() {
             .header(header::CACHE_CONTROL, "immutable")
             .header(header::LAST_MODIFIED, now_rfc2822()),
     );
-    Harness::default()
+    harness()
         .stale_and_store()
         .options(CacheOptions {
             immutable_min_time_to_live: std::time::Duration::from_secs(0),
@@ -187,9 +185,7 @@ fn pragma_no_cache() {
             .header(header::PRAGMA, "no-cache")
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default()
-        .stale_and_store()
-        .test_with_response(response);
+    harness().stale_and_store().test_with_response(response);
 }
 
 #[test]
@@ -200,12 +196,12 @@ fn blank_cache_control_and_pragma_no_cache() {
             .header(header::PRAGMA, "no-cache")
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default().test_with_response(response);
+    harness().test_with_response(response);
 }
 
 #[test]
 fn no_store() {
-    Harness::default()
+    harness()
         .no_store()
         .test_with_cache_control("no-store, public, max-age=1");
 }
@@ -216,11 +212,9 @@ fn observe_private_cache() {
     let response =
         response_parts(Response::builder().header(header::CACHE_CONTROL, private_header));
 
-    let _shared = Harness::default()
-        .no_store()
-        .test_with_response(response.clone());
+    let _shared = harness().no_store().test_with_response(response.clone());
 
-    let _private = Harness::default()
+    let _private = harness()
         .assert_time_to_live(1234)
         .options(private_opts())
         .test_with_response(response);
@@ -234,11 +228,11 @@ fn do_not_share_cookies() {
             .header(header::CACHE_CONTROL, "max-age=99"),
     );
 
-    let _shared = Harness::default()
+    let _shared = harness()
         .stale_and_store()
         .test_with_response(response.clone());
 
-    let _private = Harness::default()
+    let _private = harness()
         .assert_time_to_live(99)
         .options(private_opts())
         .test_with_response(response);
@@ -251,7 +245,7 @@ fn do_share_cookies_if_immutable() {
             .header(header::SET_COOKIE, "foo=bar")
             .header(header::CACHE_CONTROL, "immutable, max-age=99"),
     );
-    Harness::default()
+    harness()
         .assert_time_to_live(99)
         .test_with_response(response);
 }
@@ -263,14 +257,14 @@ fn cache_explicitly_public_cookie() {
             .header(header::SET_COOKIE, "foo=bar")
             .header(header::CACHE_CONTROL, "max-age=5, public"),
     );
-    Harness::default()
+    harness()
         .assert_time_to_live(5)
         .test_with_response(response);
 }
 
 #[test]
 fn miss_max_age_equals_zero() {
-    Harness::default()
+    harness()
         .stale_and_store()
         .test_with_cache_control("public, max-age=0");
 }
@@ -282,7 +276,7 @@ fn uncacheable_503_service_unavailable() {
             .status(StatusCode::SERVICE_UNAVAILABLE)
             .header(header::CACHE_CONTROL, "public, max-age=0"),
     );
-    Harness::default().no_store().test_with_response(response);
+    harness().no_store().test_with_response(response);
 }
 
 #[test]
@@ -292,7 +286,7 @@ fn cacheable_301_moved_permanently() {
             .status(StatusCode::MOVED_PERMANENTLY)
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default().test_with_response(response);
+    harness().test_with_response(response);
 }
 
 #[test]
@@ -302,7 +296,7 @@ fn uncacheable_303_see_other() {
             .status(StatusCode::SEE_OTHER)
             .header(header::LAST_MODIFIED, "Mon, 07 Mar 2016 11:52:56 GMT"),
     );
-    Harness::default().no_store().test_with_response(response);
+    harness().no_store().test_with_response(response);
 }
 
 #[test]
@@ -312,7 +306,7 @@ fn cacheable_303_see_other() {
             .status(StatusCode::SEE_OTHER)
             .header(header::CACHE_CONTROL, "max-age=1000"),
     );
-    Harness::default().test_with_response(response);
+    harness().test_with_response(response);
 }
 
 #[test]
@@ -322,7 +316,7 @@ fn uncacheable_412_precondition_failed() {
             .status(StatusCode::PRECONDITION_FAILED)
             .header(header::CACHE_CONTROL, "public, max-age=1000"),
     );
-    Harness::default().no_store().test_with_response(response);
+    harness().no_store().test_with_response(response);
 }
 
 #[test]
@@ -332,7 +326,7 @@ fn expired_expires_cache_with_max_age() {
             .header(header::CACHE_CONTROL, "public, max-age=9999")
             .header(header::EXPIRES, "Sat, 07 May 2016 15:35:18 GMT"),
     );
-    Harness::default()
+    harness()
         .assert_time_to_live(9999)
         .test_with_response(response);
 }
@@ -346,7 +340,7 @@ fn request_mismatches() {
             .header(header::CACHE_CONTROL, "public, max-age=9999")
             .header(header::EXPIRES, "Sat, 07 May 2016 15:35:18 GMT"),
     );
-    let policy = Harness::default()
+    let policy = harness()
         .time(now)
         .request(req.clone())
         .test_with_response(response);
@@ -362,7 +356,7 @@ fn request_mismatches() {
 fn request_matches() {
     let now = SystemTime::now();
     let req = request_parts(Request::builder().uri("/test"));
-    let policy = Harness::default()
+    let policy = harness()
         .stale_and_store()
         .time(now)
         .request(req.clone())
@@ -383,12 +377,12 @@ fn expired_expires_cached_with_s_maxage() {
             .header(header::EXPIRES, "Sat, 07 May 2016 15:35:18 GMT"),
     );
 
-    let _shared = Harness::default()
+    let _shared = harness()
         .assert_time_to_live(9999)
         .time(now)
         .test_with_response(response.clone());
 
-    let _private = Harness::default()
+    let _private = harness()
         .stale_and_store()
         .time(now)
         .options(private_opts())
@@ -404,7 +398,7 @@ fn max_age_wins_over_future_expires() {
             .header(header::CACHE_CONTROL, "public, max-age=333")
             .header(header::EXPIRES, in_one_hour),
     );
-    Harness::default()
+    harness()
         .assert_time_to_live(333)
         .test_with_response(response);
 }

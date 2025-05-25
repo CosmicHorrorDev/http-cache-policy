@@ -4,7 +4,13 @@
 //! Tells when responses can be reused from a cache, taking into account [HTTP RFC 7234](http://httpwg.org/specs/rfc7234.html) rules for user agents and shared caches.
 //! It's aware of many tricky details such as the `Vary` header, proxy revalidation, and authenticated responses.
 
+use http::header::{
+    ACCEPT_RANGES, AGE, AUTHORIZATION, CACHE_CONTROL, CONNECTION, DATE, ETAG, EXPIRES, HOST,
+    IF_MATCH, IF_MODIFIED_SINCE, IF_NONE_MATCH, IF_RANGE, IF_UNMODIFIED_SINCE, LAST_MODIFIED,
+    PRAGMA, SET_COOKIE, VARY, WARNING,
+};
 use http::HeaderMap;
+use http::HeaderName;
 use http::HeaderValue;
 use http::Method;
 use http::Request;
@@ -127,11 +133,9 @@ pub enum Privacy {
 impl Privacy {
     /// The default privacy [`Privacy::Shared`]
     pub const fn default() -> Self {
-        Privacy::Shared
+        Self::Shared
     }
-}
 
-impl Privacy {
     /// If the privacy is [`Privacy::Shared`]
     pub fn is_shared(self) -> bool {
         self == Self::Shared
@@ -182,7 +186,7 @@ impl CacheOptions {
     /// | [`privacy`][Self::privacy] | [`Privacy::Shared`] |
     /// | [`cache_heuristic`][Self::cache_heuristic] | 10% of the time since last modified |
     /// | [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] | 24 hours |
-    /// | [`ignore_cargo_cult`][Self::ignore_cargo_cult] | [`true`] |
+    /// | [`ignore_cargo_cult`][Self::ignore_cargo_cult] | [`false`] |
     pub const fn default() -> Self {
         Self {
             privacy: Privacy::default(),
@@ -324,18 +328,18 @@ impl CachePolicy {
             res_cc.remove("no-store");
             res_cc.remove("must-revalidate");
             res.insert(
-                "cache-control",
+                CACHE_CONTROL,
                 HeaderValue::from_str(&format_cache_control(&res_cc)).unwrap(),
             );
-            res.remove("expires");
-            res.remove("pragma");
+            res.remove(EXPIRES);
+            res.remove(PRAGMA);
         }
 
         // When the Cache-Control header field is not present in a request, caches MUST consider the no-cache request pragma-directive
         // as having the same effect as if "Cache-Control: no-cache" were present (see Section 5.2.1).
-        if !res.contains_key("cache-control")
+        if !res.contains_key(CACHE_CONTROL)
             && res
-                .get_str("pragma")
+                .get_str(&PRAGMA)
                 .map_or(false, |p| p.contains("no-cache"))
         {
             res_cc.insert("no-cache".into(), None);
@@ -372,11 +376,11 @@ impl CachePolicy {
             (self.opts.privacy == Privacy::Private || !self.res_cc.contains_key("private")) &&
             // the Authorization header field does not appear in the request, if the cache is shared,
             (self.opts.privacy == Privacy::Private ||
-                !self.req.contains_key("authorization") ||
+                !self.req.contains_key(AUTHORIZATION) ||
                 self.allows_storing_authenticated()) &&
             // the response either:
             // contains an Expires header field, or
-            (self.res.contains_key("expires") ||
+            (self.res.contains_key(EXPIRES) ||
                 // contains a max-age response directive, or
                 // contains a s-maxage response directive and the cache is shared, or
                 // contains a public response directive.
@@ -391,7 +395,7 @@ impl CachePolicy {
         // 4.2.1 Calculating Freshness Lifetime
         (self.opts.privacy == Privacy::Shared && self.res_cc.contains_key("s-maxage"))
             || self.res_cc.contains_key("max-age")
-            || self.res.contains_key("expires")
+            || self.res.contains_key(EXPIRES)
     }
 
     /// Returns whether the cached response is still fresh in the context of
@@ -430,10 +434,10 @@ impl CachePolicy {
         // When presented with a request, a cache MUST NOT reuse a stored response, unless:
         // the presented request does not contain the no-cache pragma (Section 5.4), nor the no-cache cache directive,
         // unless the stored response is successfully validated (Section 4.3), and
-        let req_cc = parse_cache_control(req_headers.get_all("cache-control"));
+        let req_cc = parse_cache_control(req_headers.get_all(CACHE_CONTROL));
         if req_cc.contains_key("no-cache")
             || req_headers
-                .get_str("pragma")
+                .get_str(&PRAGMA)
                 .map_or(false, |v| v.contains("no-cache"))
         {
             return false;
@@ -485,7 +489,7 @@ impl CachePolicy {
     fn request_matches<Req: RequestLike>(&self, req: &Req) -> (bool, bool) {
         // The presented effective request URI and that of the stored response match, and
         let matches = req.is_same_uri(&self.uri) &&
-            (self.req.get("host") == req.headers().get("host")) &&
+            (self.req.get(HOST) == req.headers().get(HOST)) &&
             // selecting header fields nominated by the stored response (if any) match those presented, and
             self.vary_matches(req);
         let exact_match = matches && self.method == req.method();
@@ -502,7 +506,7 @@ impl CachePolicy {
     }
 
     fn vary_matches<Req: RequestLike>(&self, req: &Req) -> bool {
-        for name in get_all_comma(self.res.get_all("vary")) {
+        for name in get_all_comma(self.res.get_all(VARY)) {
             // A Vary header field-value of "*" always fails to match
             if name == "*" {
                 return false;
@@ -526,19 +530,19 @@ impl CachePolicy {
         }
 
         // 9.1.  Connection
-        for name in get_all_comma(in_headers.get_all("connection")) {
+        for name in get_all_comma(in_headers.get_all(CONNECTION)) {
             headers.remove(name);
         }
 
         let new_warnings = join(
-            get_all_comma(in_headers.get_all("warning")).filter(|warning| {
+            get_all_comma(in_headers.get_all(WARNING)).filter(|warning| {
                 !warning.trim_start().starts_with('1') // FIXME: match 100-199, not 1 or 1000
             }),
         );
         if new_warnings.is_empty() {
-            headers.remove("warning");
+            headers.remove(WARNING);
         } else {
-            headers.insert("warning", HeaderValue::from_str(&new_warnings).unwrap());
+            headers.insert(WARNING, HeaderValue::from_str(&new_warnings).unwrap());
         }
         headers
     }
@@ -559,16 +563,16 @@ impl CachePolicy {
         // lifetime greater than 24 hours and the response's age is greater than 24 hours.
         if age > day && !self.has_explicit_expiration() && self.max_age() > day {
             headers.append(
-                "warning",
+                WARNING,
                 HeaderValue::from_static(r#"113 - "rfc7234 5.5.4""#),
             );
         }
         headers.insert(
-            "age",
+            AGE,
             HeaderValue::from_str(&age.as_secs().to_string()).unwrap(),
         );
         headers.insert(
-            "date",
+            DATE,
             HeaderValue::from_str(&httpdate::fmt_http_date(now)).unwrap(),
         );
 
@@ -585,7 +589,7 @@ impl CachePolicy {
     fn raw_server_date(&self) -> SystemTime {
         let date = self
             .res
-            .get_str("date")
+            .get_str(&DATE)
             .and_then(|date| httpdate::parse_http_date(date).ok());
         date.unwrap_or(self.response_time)
     }
@@ -605,7 +609,7 @@ impl CachePolicy {
     fn age_header_value(&self) -> Duration {
         Duration::from_secs(
             self.res
-                .get_str("age")
+                .get_str(&AGE)
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(0),
         )
@@ -624,14 +628,14 @@ impl CachePolicy {
         // Shared responses with cookies are cacheable according to the RFC, but IMHO it'd be unwise to do so by default
         // so this implementation requires explicit opt-in via public header
         if self.opts.privacy == Privacy::Shared
-            && (self.res.contains_key("set-cookie")
+            && (self.res.contains_key(SET_COOKIE)
                 && !self.res_cc.contains_key("public")
                 && !self.res_cc.contains_key("immutable"))
         {
             return Duration::from_secs(0);
         }
 
-        if self.res.get_str("vary").map(str::trim) == Some("*") {
+        if self.res.get_str(&VARY).map(str::trim) == Some("*") {
             return Duration::from_secs(0);
         }
 
@@ -657,7 +661,7 @@ impl CachePolicy {
         };
 
         let server_date = self.raw_server_date();
-        if let Some(expires) = self.res.get_str("expires") {
+        if let Some(expires) = self.res.get_str(&EXPIRES) {
             return match httpdate::parse_http_date(expires) {
                 // A cache recipient MUST interpret invalid date formats, especially the value "0", as representing a time in the past (i.e., "already expired").
                 Err(_) => Duration::from_secs(0),
@@ -668,7 +672,7 @@ impl CachePolicy {
             };
         }
 
-        if let Some(last_modified) = self.res.get_str("last-modified") {
+        if let Some(last_modified) = self.res.get_str(&LAST_MODIFIED) {
             if let Ok(last_modified) = httpdate::parse_http_date(last_modified) {
                 if let Ok(diff) = server_date.duration_since(last_modified) {
                     let secs_left = diff.as_secs() as f64 * f64::from(self.opts.cache_heuristic);
@@ -716,45 +720,45 @@ impl CachePolicy {
         let mut headers = Self::copy_without_hop_by_hop_headers(incoming_req.headers());
 
         // This implementation does not understand range requests
-        headers.remove("if-range");
+        headers.remove(IF_RANGE);
 
         if !self.is_storable() {
             // not for the same resource, or wasn't allowed to be cached anyway
-            headers.remove("if-none-match");
-            headers.remove("if-modified-since");
+            headers.remove(IF_NONE_MATCH);
+            headers.remove(IF_MODIFIED_SINCE);
             return self.request_from_headers(headers);
         }
 
         /* MUST send that entity-tag in any cache validation request (using If-Match or If-None-Match) if an entity-tag has been provided by the origin server. */
-        if let Some(etag) = self.res.get_str("etag") {
-            let if_none = join(get_all_comma(headers.get_all("if-none-match")).chain(Some(etag)));
-            headers.insert("if-none-match", HeaderValue::from_str(&if_none).unwrap());
+        if let Some(etag) = self.res.get_str(&ETAG) {
+            let if_none = join(get_all_comma(headers.get_all(IF_NONE_MATCH)).chain(Some(etag)));
+            headers.insert(IF_NONE_MATCH, HeaderValue::from_str(&if_none).unwrap());
         }
 
         // Clients MAY issue simple (non-subrange) GET requests with either weak validators or strong validators. Clients MUST NOT use weak validators in other forms of request.
         let forbids_weak_validators = self.method != Method::GET
-            || headers.contains_key("accept-ranges")
-            || headers.contains_key("if-match")
-            || headers.contains_key("if-unmodified-since");
+            || headers.contains_key(ACCEPT_RANGES)
+            || headers.contains_key(IF_MATCH)
+            || headers.contains_key(IF_UNMODIFIED_SINCE);
 
         /* SHOULD send the Last-Modified value in non-subrange cache validation requests (using If-Modified-Since) if only a Last-Modified value has been provided by the origin server.
         Note: This implementation does not understand partial responses (206) */
         if forbids_weak_validators {
-            headers.remove("if-modified-since");
+            headers.remove(IF_MODIFIED_SINCE);
 
             let etags = join(
-                get_all_comma(headers.get_all("if-none-match"))
+                get_all_comma(headers.get_all(IF_NONE_MATCH))
                     .filter(|etag| !etag.trim_start().starts_with("W/")),
             );
             if etags.is_empty() {
-                headers.remove("if-none-match");
+                headers.remove(IF_NONE_MATCH);
             } else {
-                headers.insert("if-none-match", HeaderValue::from_str(&etags).unwrap());
+                headers.insert(IF_NONE_MATCH, HeaderValue::from_str(&etags).unwrap());
             }
-        } else if !headers.contains_key("if-modified-since") {
-            if let Some(last_modified) = self.res.get_str("last-modified") {
+        } else if !headers.contains_key(IF_MODIFIED_SINCE) {
+            if let Some(last_modified) = self.res.get_str(&LAST_MODIFIED) {
                 headers.insert(
-                    "if-modified-since",
+                    IF_MODIFIED_SINCE,
                     HeaderValue::from_str(last_modified).unwrap(),
                 );
             }
@@ -788,10 +792,10 @@ impl CachePolicy {
         let response_headers = response.headers();
         let mut response_status = response.status();
 
-        let old_etag = &self.res.get_str("etag").map(str::trim);
-        let old_last_modified = response_headers.get_str("last-modified").map(str::trim);
-        let new_etag = response_headers.get_str("etag").map(str::trim);
-        let new_last_modified = response_headers.get_str("last-modified").map(str::trim);
+        let old_etag = &self.res.get_str(&ETAG).map(str::trim);
+        let old_last_modified = response_headers.get_str(&LAST_MODIFIED).map(str::trim);
+        let new_etag = response_headers.get_str(&ETAG).map(str::trim);
+        let new_last_modified = response_headers.get_str(&LAST_MODIFIED).map(str::trim);
 
         // These aren't going to be supported exactly, since one CachePolicy object
         // doesn't know about all the other cached objects.
@@ -887,12 +891,12 @@ fn get_all_comma<'a>(
 }
 
 trait GetHeaderStr {
-    fn get_str(&self, k: &str) -> Option<&str>;
+    fn get_str(&self, k: &HeaderName) -> Option<&str>;
 }
 
 impl GetHeaderStr for HeaderMap {
     #[inline]
-    fn get_str(&self, k: &str) -> Option<&str> {
+    fn get_str(&self, k: &HeaderName) -> Option<&str> {
         self.get(k).and_then(|v| v.to_str().ok())
     }
 }
