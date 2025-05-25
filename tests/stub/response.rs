@@ -2,10 +2,7 @@ use http::StatusCode;
 use http::{header, Method, Request, Response};
 use http_cache_semantics::CacheOptions;
 use http_cache_semantics::CachePolicy;
-use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::Duration;
-use time::OffsetDateTime;
+use std::time::{Duration, SystemTime};
 
 use crate::private_opts;
 use crate::req_cache_control;
@@ -14,7 +11,7 @@ use crate::response_parts;
 use crate::Harness;
 
 fn now_rfc2822() -> String {
-    OffsetDateTime::now_utc().format(&Rfc2822).unwrap()
+    httpdate::fmt_http_date(SystemTime::now())
 }
 
 #[test]
@@ -400,11 +397,8 @@ fn expired_expires_cached_with_s_maxage() {
 
 #[test]
 fn max_age_wins_over_future_expires() {
-    let in_one_hour = OffsetDateTime::now_utc()
-        .checked_add(Duration::hours(1))
-        .unwrap()
-        .format(&Rfc2822)
-        .unwrap();
+    let in_one_hour = SystemTime::now() + Duration::from_secs(60 * 60);
+    let in_one_hour = httpdate::fmt_http_date(in_one_hour);
     let response = response_parts(
         Response::builder()
             .header(header::CACHE_CONTROL, "public, max-age=333")

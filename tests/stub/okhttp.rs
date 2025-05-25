@@ -2,9 +2,8 @@ use http::Method;
 use http::{header, HeaderValue, Request, Response};
 use http_cache_semantics::CachePolicy;
 use std::time::SystemTime;
-use time::format_description::well_known::Rfc2822;
-use time::OffsetDateTime;
 
+use crate::format_date;
 use crate::private_opts;
 use crate::req_cache_control;
 use crate::request_parts;
@@ -348,14 +347,6 @@ fn do_not_cache_partial_response() {
             .header(header::CACHE_CONTROL, "max-age=60"),
     );
     Harness::default().no_store().test_with_response(response);
-}
-
-fn format_date(delta: i64, unit: i64) -> String {
-    let now = OffsetDateTime::now_utc();
-    let timestamp = now.unix_timestamp() + delta * unit;
-
-    let date = OffsetDateTime::from_unix_timestamp(timestamp).unwrap();
-    date.format(&Rfc2822).unwrap()
 }
 
 fn get_cached_response(
