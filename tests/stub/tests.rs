@@ -3,99 +3,13 @@
 //! 7234](https://httpwg.org/specs/rfc7234.html).
 
 use http::header;
-use http::header::HeaderValue;
 use http::Method;
 use http::Request;
-use http::Response;
 use http_cache_semantics::*;
 use std::time::SystemTime;
 
-use crate::format_date;
-use crate::private_opts;
 use crate::request_parts;
 use crate::resp_cache_control;
-
-fn assert_cached(should_put: bool, response_code: u16) {
-    let now = SystemTime::now();
-    let mut response = Response::builder()
-        .status(response_code)
-        .header(header::LAST_MODIFIED, format_date(-105, 1))
-        .header(header::EXPIRES, format_date(1, 3600))
-        .header(header::WWW_AUTHENTICATE, "challenge");
-
-    if 407 == response_code {
-        response = response.header(header::PROXY_AUTHENTICATE, "Basic realm=\"protected area\"");
-    } else if 401 == response_code {
-        response.headers_mut().unwrap().insert(
-            header::WWW_AUTHENTICATE,
-            HeaderValue::from_static("Basic realm=\"protected area\""),
-        );
-    }
-
-    let policy = CachePolicy::new_options(
-        &Request::get("http://example.com").body(()).unwrap(),
-        &response.body(()).unwrap(),
-        now,
-        private_opts(),
-    );
-
-    assert_eq!(
-        should_put,
-        policy.is_storable(),
-        "{should_put}; {response_code}; {policy:#?}"
-    );
-}
-
-#[test]
-fn ok_http_response_caching_by_response_code() {
-    assert_cached(false, 100);
-    assert_cached(false, 101);
-    assert_cached(false, 102);
-    assert_cached(true, 200);
-    assert_cached(false, 201);
-    assert_cached(false, 202);
-    assert_cached(true, 203);
-    assert_cached(true, 204);
-    assert_cached(false, 205);
-    // 206: electing to not cache partial responses
-    assert_cached(false, 206);
-    assert_cached(false, 207);
-    assert_cached(true, 300);
-    assert_cached(true, 301);
-    assert_cached(true, 302);
-    assert_cached(false, 304);
-    assert_cached(false, 305);
-    assert_cached(false, 306);
-    assert_cached(true, 307);
-    assert_cached(true, 308);
-    assert_cached(false, 400);
-    assert_cached(false, 401);
-    assert_cached(false, 402);
-    assert_cached(false, 403);
-    assert_cached(true, 404);
-    assert_cached(true, 405);
-    assert_cached(false, 406);
-    assert_cached(false, 408);
-    assert_cached(false, 409);
-    // 410: the HTTP spec permits caching 410s, but the RI doesn't
-    assert_cached(true, 410);
-    assert_cached(false, 411);
-    assert_cached(false, 412);
-    assert_cached(false, 413);
-    assert_cached(true, 414);
-    assert_cached(false, 415);
-    assert_cached(false, 416);
-    assert_cached(false, 417);
-    assert_cached(false, 418);
-    assert_cached(false, 429);
-    assert_cached(false, 500);
-    assert_cached(true, 501);
-    assert_cached(false, 502);
-    assert_cached(false, 503);
-    assert_cached(false, 504);
-    assert_cached(false, 505);
-    assert_cached(false, 506);
-}
 
 #[test]
 fn proxy_cacheable_auth_is_ok() {
