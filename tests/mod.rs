@@ -29,6 +29,24 @@ fn private_opts() -> CacheOptions {
     }
 }
 
+fn req_cache_control(s: &str) -> request::Parts {
+    Request::builder()
+        .header(header::CACHE_CONTROL, s)
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0
+}
+
+fn resp_cache_control(s: &str) -> response::Parts {
+    Response::builder()
+        .header(header::CACHE_CONTROL, s)
+        .body(())
+        .unwrap()
+        .into_parts()
+        .0
+}
+
 fn request_parts(builder: request::Builder) -> request::Parts {
     builder.body(()).unwrap().into_parts().0
 }
@@ -149,24 +167,9 @@ impl Harness {
                 "Stale entries should have no TTL"
             );
         }
+        if !policy.is_stale(time) {
+            assert!(policy.before_request(&request, time).is_fresh());
+        }
         policy
     }
-}
-
-fn req_cache_control(s: &str) -> request::Parts {
-    Request::builder()
-        .header(header::CACHE_CONTROL, s)
-        .body(())
-        .unwrap()
-        .into_parts()
-        .0
-}
-
-fn resp_cache_control(s: &str) -> response::Parts {
-    Response::builder()
-        .header(header::CACHE_CONTROL, s)
-        .body(())
-        .unwrap()
-        .into_parts()
-        .0
 }
