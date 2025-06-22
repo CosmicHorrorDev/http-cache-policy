@@ -4,7 +4,7 @@
 use std::time::{Duration, SystemTime};
 
 use http::{header, request, response, Request, Response};
-use http_cache_semantics::{CacheOptions, CachePolicy, Privacy, ResponseLike};
+use http_cache_policy::{CacheOptions, CachePolicy, Privacy, ResponseLike};
 
 mod stub;
 

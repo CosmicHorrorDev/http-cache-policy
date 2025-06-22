@@ -1,5 +1,5 @@
 use http::*;
-use http_cache_semantics::*;
+use http_cache_policy::*;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -166,11 +166,11 @@ fn date_str(now: SystemTime) -> String {
 
 fn get_cached_response(
     policy: &CachePolicy,
-    req: &impl http_cache_semantics::RequestLike,
+    req: &impl http_cache_policy::RequestLike,
     now: SystemTime,
 ) -> http::response::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Fresh(res) => res,
+        http_cache_policy::BeforeRequest::Fresh(res) => res,
         _ => panic!("stale"),
     }
 }

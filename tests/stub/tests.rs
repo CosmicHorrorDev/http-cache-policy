@@ -5,7 +5,7 @@
 use http::header;
 use http::Method;
 use http::Request;
-use http_cache_semantics::*;
+use http_cache_policy::*;
 use std::time::SystemTime;
 
 use crate::request_parts;

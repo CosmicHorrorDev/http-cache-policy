@@ -1,6 +1,6 @@
 use http::Method;
 use http::{header, HeaderValue, Request, Response};
-use http_cache_semantics::CachePolicy;
+use http_cache_policy::CachePolicy;
 use std::time::SystemTime;
 
 use crate::format_date;
@@ -351,11 +351,11 @@ fn do_not_cache_partial_response() {
 
 fn get_cached_response(
     policy: &CachePolicy,
-    req: &impl http_cache_semantics::RequestLike,
+    req: &impl http_cache_policy::RequestLike,
     now: SystemTime,
 ) -> http::response::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Fresh(res) => res,
+        http_cache_policy::BeforeRequest::Fresh(res) => res,
         _ => panic!("stale"),
     }
 }

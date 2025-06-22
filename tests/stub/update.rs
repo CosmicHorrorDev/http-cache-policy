@@ -1,8 +1,8 @@
 use http::header::HeaderName;
 use http::request::Parts as RequestParts;
 use http::{header, HeaderMap, Request, Response};
-use http_cache_semantics::AfterResponse;
-use http_cache_semantics::CachePolicy;
+use http_cache_policy::AfterResponse;
+use http_cache_policy::CachePolicy;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -125,11 +125,11 @@ fn matching_etags_are_updated() {
 
 fn get_revalidation_request(
     policy: &CachePolicy,
-    req: &(impl http_cache_semantics::RequestLike + std::fmt::Debug),
+    req: &(impl http_cache_policy::RequestLike + std::fmt::Debug),
     now: SystemTime,
 ) -> http::request::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Stale { request, matches } => {
+        http_cache_policy::BeforeRequest::Stale { request, matches } => {
             if !matches {
                 eprintln!("warning: req doesn't match {req:#?} vs {policy:?}");
             }
