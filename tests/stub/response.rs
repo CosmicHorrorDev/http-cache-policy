@@ -1,7 +1,7 @@
 use http::StatusCode;
 use http::{header, Method, Request, Response};
-use http_cache_semantics::CacheOptions;
-use http_cache_semantics::CachePolicy;
+use http_cache_policy::CacheOptions;
+use http_cache_policy::CachePolicy;
 use std::time::{Duration, SystemTime};
 
 use crate::harness;
@@ -347,9 +347,7 @@ fn request_mismatches() {
 
     req.method = Method::POST;
     let mismatch = policy.before_request(&req, now);
-    assert!(
-        matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if !matches)
-    );
+    assert!(matches!(mismatch, http_cache_policy::BeforeRequest::Stale {matches, ..} if !matches));
 }
 
 #[test]
@@ -363,9 +361,7 @@ fn request_matches() {
         .test_with_cache_control("public, max-age=0");
 
     let mismatch = policy.before_request(&req, now);
-    assert!(
-        matches!(mismatch, http_cache_semantics::BeforeRequest::Stale {matches, ..} if matches)
-    );
+    assert!(matches!(mismatch, http_cache_policy::BeforeRequest::Stale {matches, ..} if matches));
 }
 
 #[test]
@@ -405,11 +401,11 @@ fn max_age_wins_over_future_expires() {
 
 fn get_cached_response(
     policy: &CachePolicy,
-    req: &impl http_cache_semantics::RequestLike,
+    req: &impl http_cache_policy::RequestLike,
     now: SystemTime,
 ) -> http::response::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Fresh(res) => res,
+        http_cache_policy::BeforeRequest::Fresh(res) => res,
         _ => panic!("stale"),
     }
 }

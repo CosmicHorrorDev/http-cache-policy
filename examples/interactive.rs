@@ -10,7 +10,7 @@ use std::{
 
 use dialoguer::{console::style, theme::ColorfulTheme, Input};
 use http::{Request, Response, Uri};
-use http_cache_semantics::{CacheOptions, CachePolicy, Privacy};
+use http_cache_policy::{CacheOptions, CachePolicy, Privacy};
 
 const START: SystemTime = SystemTime::UNIX_EPOCH;
 static CURRENT_TIME: Mutex<SystemTime> = Mutex::new(START);
@@ -82,7 +82,7 @@ fn main() {
 fn make_a_request(cache: &mut Cache, cache_options: CacheOptions) {
     use std::collections::hash_map::Entry;
 
-    use http_cache_semantics::{AfterResponse, BeforeRequest};
+    use http_cache_policy::{AfterResponse, BeforeRequest};
 
     let req = setup_req();
     let resp = match cache.entry(req.uri().to_owned()) {

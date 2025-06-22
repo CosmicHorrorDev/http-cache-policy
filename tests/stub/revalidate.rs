@@ -1,5 +1,5 @@
 use http::{header, HeaderMap, HeaderValue, Method, Request, Response};
-use http_cache_semantics::CachePolicy;
+use http_cache_policy::CachePolicy;
 use std::time::Duration;
 use std::time::SystemTime;
 
@@ -467,22 +467,22 @@ fn should_not_send_the_last_modified_value_for_range_request() {
 
 fn get_cached_response(
     policy: &CachePolicy,
-    req: &impl http_cache_semantics::RequestLike,
+    req: &impl http_cache_policy::RequestLike,
     now: SystemTime,
 ) -> http::response::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Fresh(res) => res,
+        http_cache_policy::BeforeRequest::Fresh(res) => res,
         _ => panic!("stale"),
     }
 }
 
 fn get_revalidation_request(
     policy: &CachePolicy,
-    req: &(impl http_cache_semantics::RequestLike + std::fmt::Debug),
+    req: &(impl http_cache_policy::RequestLike + std::fmt::Debug),
     now: SystemTime,
 ) -> http::request::Parts {
     match policy.before_request(req, now) {
-        http_cache_semantics::BeforeRequest::Stale { request, matches } => {
+        http_cache_policy::BeforeRequest::Stale { request, matches } => {
             if !matches {
                 eprintln!("warning: req doesn't match {req:#?} vs {policy:#?}");
             }

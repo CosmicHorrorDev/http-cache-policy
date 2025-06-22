@@ -1,12 +1,16 @@
 [package]
-name = "http-cache-semantics"
-version = "2.1.0"
+name = "http-cache-policy"
+version = "0.1.0"
 description = "RFC 7234. Parses HTTP headers to correctly compute cacheability of responses, even in complex cases"
-homepage = "https://lib.rs/http-cache-semantics"
-repository = "https://github.com/kornelski/rusty-http-cache-semantics"
-documentation = "https://docs.rs/http-cache-semantics"
+repository = "https://github.com/CosmicHorrorDev/http-cache-policy"
 license = "BSD-2-Clause"
-authors = ["Kornel <kornel@geekhood.net>", "Luna Graysen <luna.g@protonmail.com>", "Douglas Greenshields <dgreenshields@gmail.com>", "Kat Marchán <kzm@zkat.tech>"]
+authors = [
+    "Kornel <kornel@geekhood.net>",
+    "Luna Graysen <luna.g@protonmail.com>",
+    "Douglas Greenshields <dgreenshields@gmail.com>",
+    "Kat Marchán <kzm@zkat.tech>",
+    "Cosmic <CosmicHorrorDev@pm.me>"
+]
 edition = "2021"
 categories = ["caching", "web-programming::http-client"]
 keywords = ["http", "cache", "headers", "cache-control", "proxy"]

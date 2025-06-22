@@ -222,8 +222,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "http-cache-semantics"
-version = "2.1.0"
+name = "http-cache-policy"
+version = "0.1.0"
 dependencies = [
  "dialoguer",
  "http",

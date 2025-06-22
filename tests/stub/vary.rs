@@ -4,7 +4,7 @@ use crate::request_parts;
 use crate::response_parts;
 
 use http::{header, Request, Response};
-use http_cache_semantics::CachePolicy;
+use http_cache_policy::CachePolicy;
 
 #[test]
 fn vary_basic() {
