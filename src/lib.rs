@@ -22,6 +22,11 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::time::SystemTime;
 
+/// Simply a convenience function for `SystemTime::now()`
+pub fn now() -> SystemTime {
+    SystemTime::now()
+}
+
 // rfc7231 6.1
 const STATUS_CODE_CACHEABLE_BY_DEFAULT: &[u16] =
     &[200, 203, 204, 206, 300, 301, 308, 404, 405, 410, 414, 501];
@@ -356,6 +361,13 @@ impl CachePolicy {
             req_cc,
             response_time,
         }
+    }
+
+    /// Returns a default [`CacheOptions`] struct
+    ///
+    /// [`CacheOptions`] may be used to customize non-default caching behavior
+    pub const fn options() -> CacheOptions {
+        CacheOptions::default()
     }
 
     /// Returns `true` if the response can be stored in a cache. If it's
