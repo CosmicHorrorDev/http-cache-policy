@@ -1,14 +1,8 @@
-use http::StatusCode;
-use http::{header, Method, Request, Response};
-use http_cache_policy::CachePolicy;
-use http_cache_policy::Config;
+use http::{header, Method, Request, Response, StatusCode};
+use http_cache_policy::{CachePolicy, Config};
 use std::time::{Duration, SystemTime};
 
-use crate::harness;
-use crate::private_config;
-use crate::req_cache_control;
-use crate::request_parts;
-use crate::response_parts;
+use crate::{harness, private_config, req_cache_control, request_parts, response_parts};
 
 fn now_rfc2822() -> String {
     httpdate::fmt_http_date(SystemTime::now())

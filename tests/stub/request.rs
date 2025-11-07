@@ -2,12 +2,9 @@ use std::time::SystemTime;
 
 use http::{header, Method, Request, Response};
 
-use crate::harness;
-use crate::private_config;
-use crate::req_cache_control;
-use crate::request_parts;
-use crate::resp_cache_control;
-use crate::response_parts;
+use crate::{
+    harness, private_config, req_cache_control, request_parts, resp_cache_control, response_parts,
+};
 
 fn public_cacheable_response() -> http::response::Parts {
     response_parts(Response::builder().header(header::CACHE_CONTROL, "public, max-age=222"))

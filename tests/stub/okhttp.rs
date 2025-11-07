@@ -1,14 +1,10 @@
-use http::Method;
-use http::{header, HeaderValue, Request, Response};
+use http::{header, HeaderValue, Method, Request, Response};
 use http_cache_policy::CachePolicy;
 use std::time::SystemTime;
 
-use crate::format_date;
-use crate::harness;
-use crate::private_config;
-use crate::req_cache_control;
-use crate::request_parts;
-use crate::response_parts;
+use crate::{
+    format_date, harness, private_config, req_cache_control, request_parts, response_parts,
+};
 
 fn assert_cached(should_put: bool, response_code: u16) {
     let now = SystemTime::now();
