@@ -10,7 +10,7 @@ use std::{
 
 use dialoguer::{console::style, theme::ColorfulTheme, Input};
 use http::{Request, Response, Uri};
-use http_cache_policy::{CacheOptions, CachePolicy, Privacy};
+use http_cache_policy::{CacheOptions, CachePolicy, Mode};
 
 const START: SystemTime = SystemTime::UNIX_EPOCH;
 static CURRENT_TIME: Mutex<SystemTime> = Mutex::new(START);
@@ -25,18 +25,18 @@ fn main() {
     // handle cli args
     let mut args = std::env::args();
     let _exe = args.next().unwrap();
-    let privacy = match args.next().as_deref() {
+    let mode = match args.next().as_deref() {
         None => {
             println!(
                 "running as a {}. pass {} to run as a private cache",
                 bold("shared cache").magenta(),
                 style("`-- --private-cache`").dim().italic(),
             );
-            Privacy::default()
+            Mode::default()
         }
         Some("-p" | "--private-cache") => {
             println!("running as a {}", bold("private cache").blue());
-            Privacy::Private
+            Mode::Private
         }
         _ => {
             eprintln!("usage: cargo run --example=interactive -- [-p|--private-cache]");
@@ -45,7 +45,7 @@ fn main() {
     };
 
     let cache_options = CacheOptions {
-        privacy,
+        mode,
         ..Default::default()
     };
     let mut cache = Cache::new();
