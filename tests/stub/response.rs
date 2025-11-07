@@ -143,36 +143,6 @@ fn immutable_can_expire() {
 }
 
 #[test]
-fn cache_immutable_files() {
-    let response = response_parts(
-        Response::builder()
-            .header(header::DATE, now_rfc2822())
-            .header(header::CACHE_CONTROL, "immutable")
-            .header(header::LAST_MODIFIED, now_rfc2822()),
-    );
-    harness()
-        .assert_time_to_live(Config::default().immutable_min_time_to_live.as_secs())
-        .test_with_response(response);
-}
-
-#[test]
-fn immutable_can_be_off() {
-    let response = response_parts(
-        Response::builder()
-            .header(header::DATE, now_rfc2822())
-            .header(header::CACHE_CONTROL, "immutable")
-            .header(header::LAST_MODIFIED, now_rfc2822()),
-    );
-    harness()
-        .stale_and_store()
-        .config(Config {
-            immutable_min_time_to_live: std::time::Duration::from_secs(0),
-            ..Default::default()
-        })
-        .test_with_response(response);
-}
-
-#[test]
 fn pragma_no_cache() {
     let response = response_parts(
         Response::builder()

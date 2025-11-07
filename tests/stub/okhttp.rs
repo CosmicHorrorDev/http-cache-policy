@@ -319,6 +319,7 @@ fn get_headers_deletes_cached_100_level_warnings() {
     let now = SystemTime::now();
     let response = response_parts(
         Response::builder()
+            .header(header::CACHE_CONTROL, "max-age=120")
             .header("cache-control", "immutable")
             .header(header::WARNING, "199 test danger, 200 ok ok"),
     );

@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 /// Indicates the mode the cache is operating in
 ///
 /// This influences the impact of things like the `private` or `s-maxage` directives or the
@@ -44,8 +42,6 @@ pub struct Config {
     /// TODO
     pub cache_heuristic: f32,
     /// TODO
-    pub immutable_min_time_to_live: Duration,
-    /// TODO
     pub ignore_cargo_cult: bool,
 }
 
@@ -58,13 +54,11 @@ impl Config {
     /// | :---: | :--- |
     /// | [`mode`][Self::mode] | [`Mode::Shared`] |
     /// | [`cache_heuristic`][Self::cache_heuristic] | 10% of the time since last modified |
-    /// | [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] | 24 hours |
     /// | [`ignore_cargo_cult`][Self::ignore_cargo_cult] | [`false`] |
     pub const fn default() -> Self {
         Self {
             mode: Mode::default(),
             cache_heuristic: 0.1, // 10% matches IE
-            immutable_min_time_to_live: Duration::from_secs(24 * 3600),
             ignore_cargo_cult: false,
         }
     }
@@ -82,17 +76,6 @@ impl Config {
     pub const fn cache_heuristic(self, heuristic: f32) -> Self {
         Self {
             cache_heuristic: heuristic,
-            ..self
-        }
-    }
-
-    /// Sets the default time-to-live for `immutable`
-    ///
-    /// See [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] for more details.
-    #[must_use]
-    pub const fn immutable_min_time_to_live(self, ttl: Duration) -> Self {
-        Self {
-            immutable_min_time_to_live: ttl,
             ..self
         }
     }

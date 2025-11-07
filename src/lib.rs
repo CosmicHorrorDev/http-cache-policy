@@ -503,11 +503,7 @@ impl CachePolicy {
             return Duration::from_secs(max_age.parse().unwrap_or(0));
         }
 
-        let default_min_ttl = if self.res_cc.contains_key("immutable") {
-            self.config.immutable_min_time_to_live
-        } else {
-            Duration::from_secs(0)
-        };
+        let default_min_ttl = Duration::from_secs(0);
 
         let server_date = self.raw_server_date();
         if let Some(expires) = self.res.get_str(&EXPIRES) {
