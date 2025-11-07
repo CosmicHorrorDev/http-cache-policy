@@ -4,7 +4,7 @@
 use std::time::{Duration, SystemTime};
 
 use http::{header, request, response, Request, Response};
-use http_cache_policy::{CacheOptions, CachePolicy, Privacy, ResponseLike};
+use http_cache_policy::{CacheOptions, CachePolicy, Mode, ResponseLike};
 
 mod stub;
 
@@ -24,7 +24,7 @@ fn format_date(delta: i64, unit: i64) -> String {
 
 fn private_opts() -> CacheOptions {
     CacheOptions {
-        privacy: Privacy::Private,
+        mode: Mode::Private,
         ..Default::default()
     }
 }
