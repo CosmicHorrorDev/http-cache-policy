@@ -21,6 +21,11 @@ use std::collections::HashMap;
 use std::time::Duration;
 use std::time::SystemTime;
 
+/// TODO
+pub mod config;
+
+pub use config::Config;
+
 /// Simply a convenience function for `SystemTime::now()`
 pub fn now() -> SystemTime {
     SystemTime::now()
@@ -116,121 +121,6 @@ fn format_cache_control(cc: &CacheControl) -> String {
     out
 }
 
-/// Indicates the mode the cache is operating in
-///
-/// This influences the impact of things like the `private` or `s-maxage` directives or the
-/// [`http::header::AUTHORIZATION`] header impact storability.
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub enum Mode {
-    /// A shared cache (default) e.g. for proxy or some other multi-user cache
-    ///
-    /// The `CachePolicy` will be evaluated from the perspective of a shared cache
-    #[default]
-    Shared,
-    /// A private cache e.g. for a web browser
-    ///
-    /// The `CachePolicy` will be evaluated from the perspective of a shared cache.
-    Private,
-}
-
-impl Mode {
-    /// The default Mode [`Mode::Shared`]
-    pub const fn default() -> Self {
-        Self::Shared
-    }
-
-    /// If the mode is [`Mode::Shared`]
-    pub fn is_shared(self) -> bool {
-        self == Self::Shared
-    }
-
-    /// If the mode is [`Mode::Private`]
-    pub fn is_private(self) -> bool {
-        !self.is_shared()
-    }
-}
-
-/// TODO
-#[derive(Debug, Copy, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct CacheOptions {
-    /// TODO
-    pub mode: Mode,
-    /// TODO
-    pub cache_heuristic: f32,
-    /// TODO
-    pub immutable_min_time_to_live: Duration,
-    /// TODO
-    pub ignore_cargo_cult: bool,
-}
-
-impl CacheOptions {
-    /// The default cache options
-    ///
-    /// See the various fields' docs for more details.
-    ///
-    /// | field | value |
-    /// | :---: | :--- |
-    /// | [`privacy`][Self::privacy] | [`Privacy::Shared`] |
-    /// | [`cache_heuristic`][Self::cache_heuristic] | 10% of the time since last modified |
-    /// | [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] | 24 hours |
-    /// | [`ignore_cargo_cult`][Self::ignore_cargo_cult] | [`false`] |
-    pub const fn default() -> Self {
-        Self {
-            mode: Mode::default(),
-            cache_heuristic: 0.1, // 10% matches IE
-            immutable_min_time_to_live: Duration::from_secs(24 * 3600),
-            ignore_cargo_cult: false,
-        }
-    }
-
-    /// Set the mode that the cache operates in
-    #[must_use]
-    pub const fn mode(self, mode: Mode) -> Self {
-        Self { mode, ..self }
-    }
-
-    /// Sets the cache's last modified freshness heuristic
-    ///
-    /// See [`cache_heuristic`][Self::cache_heuristic] for more details.
-    #[must_use]
-    pub const fn cache_heuristic(self, heuristic: f32) -> Self {
-        Self {
-            cache_heuristic: heuristic,
-            ..self
-        }
-    }
-
-    /// Sets the default time-to-live for `immutable`
-    ///
-    /// See [`immutable_min_time_to_live`][Self::immutable_min_time_to_live] for more details.
-    #[must_use]
-    pub const fn immutable_min_time_to_live(self, ttl: Duration) -> Self {
-        Self {
-            immutable_min_time_to_live: ttl,
-            ..self
-        }
-    }
-
-    /// Ignores the effect of some ill-advised directive usage
-    ///
-    /// See [`ignore_cargo_cult`][Self::ignore_cargo_cult] for more details.
-    #[must_use]
-    pub const fn ignore_cargo_cult(self, ignore: bool) -> Self {
-        Self {
-            ignore_cargo_cult: ignore,
-            ..self
-        }
-    }
-}
-
-impl Default for CacheOptions {
-    fn default() -> Self {
-        Self::default()
-    }
-}
-
 /// TODO
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -245,7 +135,7 @@ pub struct CachePolicy {
     status: StatusCode,
     #[cfg_attr(feature = "serde", serde(with = "http_serde::method"))]
     method: Method,
-    opts: CacheOptions,
+    config: Config,
     res_cc: CacheControl,
     req_cc: CacheControl,
     response_time: SystemTime,
@@ -255,23 +145,23 @@ impl CachePolicy {
     /// TODO
     #[inline]
     pub fn new<Req: RequestLike, Res: ResponseLike>(req: &Req, res: &Res) -> Self {
-        Self::new_options(req, res, SystemTime::now(), Default::default())
+        Self::with_config(req, res, SystemTime::now(), Default::default())
     }
 
     /// TODO
     #[inline]
-    pub fn new_options<Req: RequestLike, Res: ResponseLike>(
+    pub fn with_config<Req: RequestLike, Res: ResponseLike>(
         req: &Req,
         res: &Res,
         response_time: SystemTime,
-        opts: CacheOptions,
+        config: Config,
     ) -> Self {
         let uri = req.uri();
         let status = res.status();
         let method = req.method().clone();
         let res = res.headers().clone();
         let req = req.headers().clone();
-        Self::from_details(uri, method, status, req, res, response_time, opts)
+        Self::from_details(uri, method, status, req, res, response_time, config)
     }
 
     fn from_details(
@@ -281,14 +171,14 @@ impl CachePolicy {
         req: HeaderMap,
         mut res: HeaderMap,
         response_time: SystemTime,
-        opts: CacheOptions,
+        config: Config,
     ) -> Self {
         let mut res_cc = parse_cache_control(res.get_all("cache-control"));
         let req_cc = parse_cache_control(req.get_all("cache-control"));
 
         // Assume that if someone uses legacy, non-standard uncecessary options they don't understand caching,
         // so there's no point stricly adhering to the blindly copy&pasted directives.
-        if opts.ignore_cargo_cult
+        if config.ignore_cargo_cult
             && res_cc.contains_key("pre-check")
             && res_cc.contains_key("post-check")
         {
@@ -321,18 +211,18 @@ impl CachePolicy {
             uri,
             status,
             method,
-            opts,
+            config,
             res_cc,
             req_cc,
             response_time,
         }
     }
 
-    /// Returns a default [`CacheOptions`] struct
+    /// Returns a default [`Config`] struct
     ///
-    /// [`CacheOptions`] may be used to customize non-default caching behavior
-    pub const fn options() -> CacheOptions {
-        CacheOptions::default()
+    /// [`Config`] may be used to customize non-default caching behavior
+    pub const fn config() -> Config {
+        Config::default()
     }
 
     /// TODO
@@ -349,9 +239,9 @@ impl CachePolicy {
             // the "no-store" cache directive does not appear in request or response header fields, and
             !self.res_cc.contains_key("no-store") &&
             // the "private" response directive does not appear in the response, if the cache is shared, and
-            (self.opts.mode.is_private() || !self.res_cc.contains_key("private")) &&
+            (self.config.mode.is_private() || !self.res_cc.contains_key("private")) &&
             // the Authorization header field does not appear in the request, if the cache is shared,
-            (self.opts.mode.is_private() ||
+            (self.config.mode.is_private() ||
                 !self.req.contains_key(AUTHORIZATION) ||
                 self.allows_storing_authenticated()) &&
             // the response either:
@@ -361,7 +251,7 @@ impl CachePolicy {
                 // contains a s-maxage response directive and the cache is shared, or
                 // contains a public response directive.
                 self.res_cc.contains_key("max-age") ||
-                (self.opts.mode.is_shared() && self.res_cc.contains_key("s-maxage")) ||
+                (self.config.mode.is_shared() && self.res_cc.contains_key("s-maxage")) ||
                 self.res_cc.contains_key("public") ||
                 // has a status code that is defined as cacheable by default
                 STATUS_CODE_CACHEABLE_BY_DEFAULT.contains(&self.status.as_u16()))
@@ -369,7 +259,7 @@ impl CachePolicy {
 
     fn has_explicit_expiration(&self) -> bool {
         // 4.2.1 Calculating Freshness Lifetime
-        (self.opts.mode.is_shared() && self.res_cc.contains_key("s-maxage"))
+        (self.config.mode.is_shared() && self.res_cc.contains_key("s-maxage"))
             || self.res_cc.contains_key("max-age")
             || self.res.contains_key(EXPIRES)
     }
@@ -591,7 +481,7 @@ impl CachePolicy {
 
         // Shared responses with cookies are cacheable according to the RFC, but IMHO it'd be unwise to do so by default
         // so this implementation requires explicit opt-in via public header
-        if self.opts.mode.is_shared()
+        if self.config.mode.is_shared()
             && self.res.contains_key(SET_COOKIE)
             && !self.res_cc.contains_key("public")
             && !self.res_cc.contains_key("immutable")
@@ -603,7 +493,7 @@ impl CachePolicy {
             return Duration::from_secs(0);
         }
 
-        if self.opts.mode.is_shared() {
+        if self.config.mode.is_shared() {
             if self.res_cc.contains_key("proxy-revalidate") {
                 return Duration::from_secs(0);
             }
@@ -619,7 +509,7 @@ impl CachePolicy {
         }
 
         let default_min_ttl = if self.res_cc.contains_key("immutable") {
-            self.opts.immutable_min_time_to_live
+            self.config.immutable_min_time_to_live
         } else {
             Duration::from_secs(0)
         };
@@ -639,7 +529,7 @@ impl CachePolicy {
         if let Some(last_modified) = self.res.get_str(&LAST_MODIFIED) {
             if let Ok(last_modified) = httpdate::parse_http_date(last_modified) {
                 if let Ok(diff) = server_date.duration_since(last_modified) {
-                    let secs_left = diff.as_secs() as f64 * f64::from(self.opts.cache_heuristic);
+                    let secs_left = diff.as_secs() as f64 * f64::from(self.config.cache_heuristic);
                     return default_min_ttl.max(Duration::from_secs(secs_left as _));
                 }
             }
@@ -796,7 +686,7 @@ impl CachePolicy {
             request.headers().clone(),
             new_response_headers,
             response_time,
-            self.opts,
+            self.config,
         );
         let new_response = new_policy.cached_response(response_time);
 

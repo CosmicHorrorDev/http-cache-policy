@@ -3,7 +3,7 @@ use std::time::SystemTime;
 use http::{header, Method, Request, Response};
 
 use crate::harness;
-use crate::private_opts;
+use crate::private_config;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::resp_cache_control;
@@ -52,7 +52,7 @@ fn public_cacheable_auth_is_ok() {
 #[test]
 fn private_auth_is_ok() {
     harness()
-        .options(private_opts())
+        .config(private_config())
         .request(request_parts(
             Request::builder().header(header::AUTHORIZATION, "test"),
         ))

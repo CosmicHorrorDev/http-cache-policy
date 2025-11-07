@@ -10,7 +10,7 @@ use std::{
 
 use dialoguer::{console::style, theme::ColorfulTheme, Input};
 use http::{Request, Response, Uri};
-use http_cache_policy::{CacheOptions, CachePolicy, Mode};
+use http_cache_policy::{config::Mode, CachePolicy, Config};
 
 const START: SystemTime = SystemTime::UNIX_EPOCH;
 static CURRENT_TIME: Mutex<SystemTime> = Mutex::new(START);
@@ -44,7 +44,7 @@ fn main() {
         }
     };
 
-    let cache_options = CacheOptions {
+    let config = Config {
         mode,
         ..Default::default()
     };
@@ -67,7 +67,7 @@ fn main() {
             .interact()
             .unwrap();
         match selection {
-            0 => make_a_request(&mut cache, cache_options),
+            0 => make_a_request(&mut cache, config),
             1 => advance_time(),
             2 => list_cache_entries(&cache),
             3 => break,
@@ -79,7 +79,7 @@ fn main() {
     list_cache_entries(&cache);
 }
 
-fn make_a_request(cache: &mut Cache, cache_options: CacheOptions) {
+fn make_a_request(cache: &mut Cache, config: Config) {
     use std::collections::hash_map::Entry;
 
     use http_cache_policy::{AfterResponse, BeforeRequest};
@@ -129,7 +129,7 @@ fn make_a_request(cache: &mut Cache, cache_options: CacheOptions) {
         }
         Entry::Vacant(vacant) => {
             let resp = server::get(req.clone());
-            let policy = CachePolicy::new_options(&req, &resp, current_time(), cache_options);
+            let policy = CachePolicy::with_config(&req, &resp, current_time(), config);
             // NOTE: if the policy isn't storable then you MUST NOT store the entry
             if policy.is_storable() {
                 println!("{} inserting entry", bold("cached!").green());

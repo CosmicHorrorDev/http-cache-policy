@@ -1,11 +1,11 @@
 use http::StatusCode;
 use http::{header, Method, Request, Response};
-use http_cache_policy::CacheOptions;
 use http_cache_policy::CachePolicy;
+use http_cache_policy::Config;
 use std::time::{Duration, SystemTime};
 
 use crate::harness;
-use crate::private_opts;
+use crate::private_config;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
@@ -39,7 +39,7 @@ fn quoted_syntax() {
 fn iis() {
     harness()
         .assert_time_to_live(259200)
-        .options(private_opts())
+        .config(private_config())
         .test_with_cache_control("private, public, max-age=259200");
 }
 
@@ -73,7 +73,7 @@ fn pre_check_poison() {
     let policy = harness()
         .assert_time_to_live(100)
         .time(now)
-        .options(CacheOptions {
+        .config(Config {
             ignore_cargo_cult: true,
             ..Default::default()
         })
@@ -157,7 +157,7 @@ fn cache_immutable_files() {
             .header(header::LAST_MODIFIED, now_rfc2822()),
     );
     harness()
-        .assert_time_to_live(CacheOptions::default().immutable_min_time_to_live.as_secs())
+        .assert_time_to_live(Config::default().immutable_min_time_to_live.as_secs())
         .test_with_response(response);
 }
 
@@ -171,7 +171,7 @@ fn immutable_can_be_off() {
     );
     harness()
         .stale_and_store()
-        .options(CacheOptions {
+        .config(Config {
             immutable_min_time_to_live: std::time::Duration::from_secs(0),
             ..Default::default()
         })
@@ -216,7 +216,7 @@ fn observe_private_cache() {
 
     let _private = harness()
         .assert_time_to_live(1234)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 
@@ -234,7 +234,7 @@ fn do_not_share_cookies() {
 
     let _private = harness()
         .assert_time_to_live(99)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 
@@ -381,7 +381,7 @@ fn expired_expires_cached_with_s_maxage() {
     let _private = harness()
         .stale_and_store()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 

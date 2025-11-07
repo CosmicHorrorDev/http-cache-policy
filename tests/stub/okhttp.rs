@@ -5,14 +5,14 @@ use std::time::SystemTime;
 
 use crate::format_date;
 use crate::harness;
-use crate::private_opts;
+use crate::private_config;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
 
 fn assert_cached(should_put: bool, response_code: u16) {
     let now = SystemTime::now();
-    let options = private_opts();
+    let config = private_config();
 
     let mut response = response_parts(
         Response::builder()
@@ -36,7 +36,7 @@ fn assert_cached(should_put: bool, response_code: u16) {
 
     let request = request_parts(Request::get("/"));
 
-    let policy = CachePolicy::new_options(&request, &response, now, options);
+    let policy = CachePolicy::with_config(&request, &response, now, config);
 
     assert_eq!(should_put, policy.is_storable());
 }
@@ -116,7 +116,7 @@ fn default_expiration_date_fully_cached_for_more_than_24_hours() {
     );
     let policy = harness()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 
     assert!(policy.time_to_live(now).as_secs() >= 5 * 3600 * 24 - 1);
@@ -133,7 +133,7 @@ fn max_age_in_the_past_with_date_header_but_no_last_modified_header() {
     );
     harness()
         .stale_and_store()
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 
@@ -147,7 +147,7 @@ fn max_age_preferred_over_lower_shared_max_age() {
 
     harness()
         .assert_time_to_live(180)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 
@@ -160,7 +160,7 @@ fn max_age_preferred_over_higher_max_age() {
     );
     harness()
         .stale_and_store()
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 }
 
@@ -171,7 +171,7 @@ fn request_method_not_cached(method: Method) {
 
     harness()
         .no_store()
-        .options(private_opts())
+        .config(private_config())
         .request(request)
         .test_with_response(response);
 }
@@ -208,7 +208,7 @@ fn etag_and_expiration_date_in_the_future() {
 
     let policy = harness()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 
     assert!(policy.time_to_live(now).as_millis() > 0);
@@ -218,7 +218,7 @@ fn etag_and_expiration_date_in_the_future() {
 fn client_side_no_store() {
     harness()
         .no_store()
-        .options(private_opts())
+        .config(private_config())
         .request(req_cache_control("no-store"))
         .test_with_cache_control("max-age=60");
 }
@@ -238,7 +238,7 @@ fn request_max_age() {
         .assert_age(60)
         .assert_time_to_live(3000)
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 
     assert!(policy
@@ -255,7 +255,7 @@ fn request_min_fresh() {
 
     let policy = harness()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_cache_control("max-age=60");
 
     assert!(!policy
@@ -279,7 +279,7 @@ fn request_max_stale() {
     let policy = harness()
         .stale_and_store()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 
     assert!(policy
@@ -306,7 +306,7 @@ fn request_max_stale_not_honored_with_must_revalidate() {
     let policy = harness()
         .stale_and_store()
         .time(now)
-        .options(private_opts())
+        .config(private_config())
         .test_with_response(response);
 
     assert!(!policy
