@@ -520,7 +520,8 @@ impl CachePolicy {
         if let Some(last_modified) = self.res.get_str(&LAST_MODIFIED) {
             if let Ok(last_modified) = httpdate::parse_http_date(last_modified) {
                 if let Ok(diff) = server_date.duration_since(last_modified) {
-                    let secs_left = diff.as_secs() as f64 * f64::from(self.config.cache_heuristic);
+                    let secs_left =
+                        diff.as_secs() as f64 * f64::from(f32::from(self.config.last_modified));
                     return default_min_ttl.max(Duration::from_secs(secs_left as _));
                 }
             }
