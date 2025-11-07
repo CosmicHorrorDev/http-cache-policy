@@ -968,6 +968,62 @@ pub trait ResponseLike {
     fn headers(&self) -> &HeaderMap;
 }
 
+impl<'a> RequestLike for (&'a Uri, &'a Method, &'a HeaderMap) {
+    fn uri(&self) -> Uri {
+        self.0.to_owned()
+    }
+
+    fn is_same_uri(&self, other: &Uri) -> bool {
+        self.0 == other
+    }
+
+    fn method(&self) -> &Method {
+        self.1
+    }
+
+    fn headers(&self) -> &HeaderMap {
+        self.2
+    }
+}
+
+impl RequestLike for (Uri, Method, HeaderMap) {
+    fn uri(&self) -> Uri {
+        self.0.clone()
+    }
+
+    fn is_same_uri(&self, other: &Uri) -> bool {
+        &self.0 == other
+    }
+
+    fn method(&self) -> &Method {
+        &self.1
+    }
+
+    fn headers(&self) -> &HeaderMap {
+        &self.2
+    }
+}
+
+impl ResponseLike for (StatusCode, &HeaderMap) {
+    fn status(&self) -> StatusCode {
+        self.0
+    }
+
+    fn headers(&self) -> &HeaderMap {
+        self.1
+    }
+}
+
+impl ResponseLike for (StatusCode, HeaderMap) {
+    fn status(&self) -> StatusCode {
+        self.0
+    }
+
+    fn headers(&self) -> &HeaderMap {
+        &self.1
+    }
+}
+
 impl<Body> RequestLike for Request<Body> {
     fn uri(&self) -> Uri {
         self.uri().clone()
