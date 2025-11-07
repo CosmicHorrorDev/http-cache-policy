@@ -70,6 +70,7 @@ fn cache_with_expires() {
     };
     harness()
         .assert_time_to_live(2)
+        .time(now)
         .test_with_response(response);
 }
 
