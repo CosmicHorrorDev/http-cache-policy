@@ -3,23 +3,18 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 //! TODO
 
-use http::header::{
-    ACCEPT_RANGES, AGE, AUTHORIZATION, CACHE_CONTROL, CONNECTION, DATE, ETAG, EXPIRES, HOST,
-    IF_MATCH, IF_MODIFIED_SINCE, IF_NONE_MATCH, IF_RANGE, IF_UNMODIFIED_SINCE, LAST_MODIFIED,
-    PRAGMA, SET_COOKIE, VARY, WARNING,
+use http::{
+    header::{
+        ACCEPT_RANGES, AGE, AUTHORIZATION, CACHE_CONTROL, CONNECTION, DATE, ETAG, EXPIRES, HOST,
+        IF_MATCH, IF_MODIFIED_SINCE, IF_NONE_MATCH, IF_RANGE, IF_UNMODIFIED_SINCE, LAST_MODIFIED,
+        PRAGMA, SET_COOKIE, VARY, WARNING,
+    },
+    HeaderMap, HeaderName, HeaderValue, Method, Request, Response, StatusCode, Uri,
 };
-use http::HeaderMap;
-use http::HeaderName;
-use http::HeaderValue;
-use http::Method;
-use http::Request;
-use http::Response;
-use http::StatusCode;
-use http::Uri;
-use std::collections::hash_map::Entry;
-use std::collections::HashMap;
-use std::time::Duration;
-use std::time::SystemTime;
+use std::{
+    collections::{hash_map::Entry, HashMap},
+    time::{Duration, SystemTime},
+};
 
 /// TODO
 pub mod config;

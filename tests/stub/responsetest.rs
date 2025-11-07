@@ -1,9 +1,7 @@
-use http::*;
-use http_cache_policy::*;
-use std::time::Duration;
-use std::time::SystemTime;
-
 use crate::Harness;
+use http::{header, request, Request, Response};
+use http_cache_policy::{CachePolicy, Config, ResponseLike};
+use std::time::{Duration, SystemTime};
 
 macro_rules! headers(
     { $($key:tt : $value:expr),* $(,)? } => {
