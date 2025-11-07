@@ -231,7 +231,7 @@ mod helpers {
             ("/cached-current-time", "max-age: 10s"),
             ("/friends-online", "private, max-age: 30s"),
             ("/user/123/profile-pic", "e-tag w/ max-age: 30s"),
-            ("/cache-busted-123B-8E2A", "immutable"),
+            ("/cache-busted-123B-8E2A", "immutable w/ max-age: 24h"),
         ];
         let styled: Vec<_> = path_to_cache_desc
             .iter()
@@ -269,21 +269,15 @@ mod server {
         let elapsed = CURRENT_TIME.lock().unwrap().duration_since(START).unwrap();
         match req.uri().path() {
             "/current-time" => Response::builder()
-                .header(header::CACHE_CONTROL, HeaderValue::from_static("no-store"))
+                .header(header::CACHE_CONTROL, "no-store")
                 .body(format!("current elapsed time {elapsed:?}")),
             "/cached-current-time" => Response::builder()
-                .header(
-                    header::CACHE_CONTROL,
-                    HeaderValue::from_static("max-age=10"),
-                )
+                .header(header::CACHE_CONTROL, "max-age=10")
                 .body(format!("cached current elapsed time {elapsed:?}")),
             "/friends-online" => {
                 let randomish_num = (current_duration().as_secs() / 10 + 1) * 1997 % 15;
                 Response::builder()
-                    .header(
-                        header::CACHE_CONTROL,
-                        HeaderValue::from_static("private, max-age=30"),
-                    )
+                    .header(header::CACHE_CONTROL, "private, max-age=30")
                     .body(format!("{randomish_num} friends online"))
             }
             "/user/123/profile-pic" => {
@@ -310,7 +304,7 @@ mod server {
                 }
             }
             "/cache-busted-123B-8E2A" => Response::builder()
-                .header(header::CACHE_CONTROL, HeaderValue::from_static("immutable"))
+                .header(header::CACHE_CONTROL, "immutable, max-age=86400")
                 .body("(pretend like this is some very large asset ~('-')~)".to_owned()),
             _ => unreachable!(),
         }
