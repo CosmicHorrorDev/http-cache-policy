@@ -1,8 +1,7 @@
 #![warn(missing_docs)]
 #![deny(unconditional_recursion)]
 #![cfg_attr(docsrs, feature(doc_cfg))]
-//! Tells when responses can be reused from a cache, taking into account [HTTP RFC 7234](http://httpwg.org/specs/rfc7234.html) rules for user agents and shared caches.
-//! It's aware of many tricky details such as the `Vary` header, proxy revalidation, and authenticated responses.
+//! TODO
 
 use http::header::{
     ACCEPT_RANGES, AGE, AUTHORIZATION, CACHE_CONTROL, CONNECTION, DATE, ETAG, EXPIRES, HOST,
@@ -152,32 +151,17 @@ impl Privacy {
     }
 }
 
-/// Configuration options which control behavior of the cache. Use with `CachePolicy::new_options()`.
+/// TODO
 #[derive(Debug, Copy, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CacheOptions {
-    /// If `true` (default), then the response is evaluated from a
-    /// perspective of a shared cache (i.e. `private` is not cacheable and
-    /// `s-maxage` is respected). If `shared` is `false`, then the response is
-    /// evaluated from a perspective of a single-user cache (i.e. `private` is
-    /// cacheable and `s-maxage` is ignored). `shared: true` is required
-    /// for proxies and multi-user caches.
+    /// TODO
     pub privacy: Privacy,
-    /// `cache_heuristic` is a fraction of response's age that is used as a
-    /// fallback cache duration. The default is 0.1 (10%), e.g. if a file
-    /// hasn't been modified for 100 days, it'll be cached for 100×0.1 = 10
-    /// days.
+    /// TODO
     pub cache_heuristic: f32,
-    /// `immutable_min_time_to_live` is a duration to assume as the
-    /// default time to cache responses with `Cache-Control: immutable`. Note
-    /// that per RFC these can become stale, so `max-age` still overrides the
-    /// default.
+    /// TODO
     pub immutable_min_time_to_live: Duration,
-    /// If `ignore_cargo_cult` is `true`, common anti-cache directives will be
-    /// completely ignored if the non-standard `pre-check` and `post-check`
-    /// directives are present. These two useless directives are most commonly
-    /// found in bad StackOverflow answers and PHP's "session limiter"
-    /// defaults.
+    /// TODO
     pub ignore_cargo_cult: bool,
 }
 
@@ -247,10 +231,7 @@ impl Default for CacheOptions {
     }
 }
 
-/// Identifies when responses can be reused from a cache, taking into account
-/// HTTP RFC 7234 rules for user agents and shared caches. It's aware of many
-/// tricky details such as the Vary header, proxy revalidation, and
-/// authenticated responses.
+/// TODO
 #[derive(Debug, Clone)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct CachePolicy {
@@ -271,8 +252,7 @@ pub struct CachePolicy {
 }
 
 impl CachePolicy {
-    /// Cacheability of an HTTP response depends on how it was requested, so
-    /// both request and response are required to create the policy.
+    /// TODO
     #[inline]
     pub fn new<Req: RequestLike, Res: ResponseLike>(req: &Req, res: &Res) -> Self {
         let uri = req.uri();
@@ -291,9 +271,7 @@ impl CachePolicy {
         )
     }
 
-    /// Caching with customized behavior. See `CacheOptions` for details.
-    ///
-    /// `response_time` is a timestamp when the response has been received, usually `SystemTime::now()`.
+    /// TODO
     #[inline]
     pub fn new_options<Req: RequestLike, Res: ResponseLike>(
         req: &Req,
@@ -370,8 +348,7 @@ impl CachePolicy {
         CacheOptions::default()
     }
 
-    /// Returns `true` if the response can be stored in a cache. If it's
-    /// `false` then you MUST NOT store either the request or the response.
+    /// TODO
     pub fn is_storable(&self) -> bool {
         // The "no-store" request directive indicates that a cache MUST NOT store any part of either this request or any response to it.
         !self.req_cc.contains_key("no-store") &&
@@ -410,17 +387,7 @@ impl CachePolicy {
             || self.res.contains_key(EXPIRES)
     }
 
-    /// Returns whether the cached response is still fresh in the context of
-    /// the new request.
-    ///
-    /// If it returns `Fresh`, then the given request matches the original
-    /// response this cache policy has been created with, and the response can
-    /// be reused without contacting the server.
-    ///
-    /// If it returns `Stale`, then the response may not be matching at all
-    /// (e.g. it's for a different URL or method), or may require to be
-    /// refreshed first. Either way, the new request's headers will have been
-    /// updated for sending it to the origin server.
+    /// TODO
     pub fn before_request<Req: RequestLike>(&self, req: &Req, now: SystemTime) -> BeforeRequest {
         let req_headers = req.headers();
 
@@ -606,9 +573,7 @@ impl CachePolicy {
         date.unwrap_or(self.response_time)
     }
 
-    /// Tells how long the response has been sitting in cache(s).
-    ///
-    /// Value of the `Age` header, updated for the current time.
+    /// TODO
     pub fn age(&self, now: SystemTime) -> Duration {
         let mut age = self.age_header_value();
 
@@ -696,38 +661,19 @@ impl CachePolicy {
         default_min_ttl
     }
 
-    /// Returns approximate time until the response becomes
-    /// stale (i.e. not fresh). This is the correct way of getting the current `max-age` value.
-    ///
-    /// After that time (when `time_to_live() == Duration::ZERO`) the response might not be
-    /// usable without revalidation. However, there are exceptions, e.g. a
-    /// client can explicitly allow stale responses, so always check with
-    /// `before_request()`.
-    ///
-    /// If you're storing responses in a cache/database, keep them approximately for
-    /// the `time_to_live` duration plus some extra time to allow for revalidation
-    /// (an expired response is still useful).
+    /// TODO
     pub fn time_to_live(&self, now: SystemTime) -> Duration {
         self.max_age()
             .checked_sub(self.age(now))
             .unwrap_or_default()
     }
 
-    /// Stale responses shouldn't be used without contacting the server (revalidation)
+    /// TODO
     pub fn is_stale(&self, now: SystemTime) -> bool {
         self.max_age() <= self.age(now)
     }
 
-    /// Headers for sending to the origin server to revalidate stale response.
-    /// Allows server to return 304 to allow reuse of the previous response.
-    ///
-    /// Hop by hop headers are always stripped.
-    /// Revalidation headers may be added or removed, depending on request.
-    ///
-    /// It returns request "parts" without a body. You can upgrade it to a full
-    /// response with `Request::from_parts(parts, BYOB)` (the body is usually `()`).
-    ///
-    /// You don't need this if you use [`before_request()`]
+    /// TODO
     fn revalidation_request<Req: RequestLike>(&self, incoming_req: &Req) -> http::request::Parts {
         let mut headers = Self::copy_without_hop_by_hop_headers(incoming_req.headers());
 
@@ -790,11 +736,7 @@ impl CachePolicy {
         parts
     }
 
-    /// Creates `CachePolicy` with information combined from the previews response,
-    /// and the new revalidation response.
-    ///
-    /// Returns `{policy, modified}` where modified is a boolean indicating
-    /// whether the response body has been modified, and old cached body can't be used.
+    /// TODO
     pub fn after_response<Req: RequestLike, Res: ResponseLike>(
         &self,
         request: &Req,
@@ -879,16 +821,16 @@ impl CachePolicy {
     }
 }
 
-/// New policy and flags to act on `after_response()`
+/// TODO
 pub enum AfterResponse {
-    /// You can use the cached body! Make sure to use these updated headers
+    /// TODO
     NotModified(CachePolicy, http::response::Parts),
-    /// You need to update the body in the cache
+    /// TODO
     Modified(CachePolicy, http::response::Parts),
 }
 
 impl AfterResponse {
-    /// Returns if this is a `BeforeRequest::Fresh(_)`
+    /// TODO
     pub fn is_modified(&self) -> bool {
         matches!(self, Self::Modified(..))
     }
@@ -925,46 +867,43 @@ fn join<'a>(parts: impl Iterator<Item = &'a str>) -> String {
     out
 }
 
-/// Next action suggested after `before_request()`
+/// TODO
 pub enum BeforeRequest {
-    /// Good news! You can use it with body from the cache. No need to contact the server.
+    /// TODO
     Fresh(http::response::Parts),
-    /// You must send the request to the server first.
+    /// TODO
     Stale {
-        /// Send this request to the server (it has added revalidation headers when appropriate)
+        /// TODO
         request: http::request::Parts,
-        /// If `false`, request was for some other resource that isn't
-        /// semantically the same as previously cached request+response
+        /// TODO
         matches: bool,
     },
 }
 
 impl BeforeRequest {
-    /// Returns if this is a `BeforeRequest::Fresh(_)`
+    /// TODO
     pub fn is_fresh(&self) -> bool {
         matches!(self, Self::Fresh(_))
     }
 }
 
-/// Allows using either `Request` or `request::Parts`, or your own newtype.
+/// TODO
 pub trait RequestLike {
-    /// Same as `req.uri().clone()`
+    /// TODO
     fn uri(&self) -> Uri;
-    /// Whether the effective request URI matches the other URI
-    ///
-    /// It can be naive string comparison, nothing fancy
+    /// TODO
     fn is_same_uri(&self, other: &Uri) -> bool;
-    /// Same as `req.method()`
+    /// TODO
     fn method(&self) -> &Method;
-    /// Same as `req.headers()`
+    /// TODO
     fn headers(&self) -> &HeaderMap;
 }
 
-/// Allows using either `Response` or `response::Parts`, or your own newtype.
+/// TODO
 pub trait ResponseLike {
-    /// Same as `res.status()`
+    /// TODO
     fn status(&self) -> StatusCode;
-    /// Same as `res.headers()`
+    /// TODO
     fn headers(&self) -> &HeaderMap;
 }
 
