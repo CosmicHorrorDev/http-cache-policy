@@ -4,7 +4,7 @@
 use std::time::{Duration, SystemTime};
 
 use http::{header, request, response, Request, Response};
-use http_cache_policy::{CacheOptions, CachePolicy, Mode, ResponseLike};
+use http_cache_policy::{config::Mode, CachePolicy, Config, ResponseLike};
 
 mod stub;
 
@@ -22,11 +22,8 @@ fn format_date(delta: i64, unit: i64) -> String {
     httpdate::fmt_http_date(timestamp)
 }
 
-fn private_opts() -> CacheOptions {
-    CacheOptions {
-        mode: Mode::Private,
-        ..Default::default()
-    }
+fn private_config() -> Config {
+    Config::default().mode(Mode::Private)
 }
 
 fn req_cache_control(s: &str) -> request::Parts {
@@ -69,7 +66,7 @@ struct Harness {
     // configuration
     time: Option<SystemTime>,
     request: Option<request::Parts>,
-    options: CacheOptions,
+    config: Config,
 }
 
 impl Harness {
@@ -98,8 +95,8 @@ impl Harness {
         self
     }
 
-    fn options(mut self, opts: CacheOptions) -> Self {
-        self.options = opts;
+    fn config(mut self, config: Config) -> Self {
+        self.config = config;
         self
     }
 
@@ -126,12 +123,12 @@ impl Harness {
             assert_time_to_live,
             time,
             request,
-            options,
+            config,
         } = self;
         let time = time.unwrap_or_else(SystemTime::now);
         let request =
             request.unwrap_or_else(|| Request::builder().body(()).unwrap().into_parts().0);
-        let policy = CachePolicy::new_options(&request, &resp, time, options);
+        let policy = CachePolicy::with_config(&request, &resp, time, config);
         assert_eq!(
             no_store,
             !policy.is_storable(),

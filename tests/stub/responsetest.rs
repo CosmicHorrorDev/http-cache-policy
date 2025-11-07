@@ -40,13 +40,13 @@ fn weird_syntax() {
 fn pre_check_poison_undefined_header() {
     let now = SystemTime::now();
     let orig_cc = "pre-check=0, post-check=0, no-cache, no-store";
-    let options = CacheOptions {
+    let config = Config {
         ignore_cargo_cult: true,
         ..Default::default()
     };
     let cache = harness()
         .stale_and_store()
-        .options(options)
+        .config(config)
         .time(now)
         .test_with_response(headers! { "cache-control": orig_cc, "expires": "yesterday!"});
 

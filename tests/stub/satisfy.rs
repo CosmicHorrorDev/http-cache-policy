@@ -3,7 +3,7 @@ use std::time::Duration;
 use std::time::SystemTime;
 
 use crate::harness;
-use crate::private_opts;
+use crate::private_config;
 use crate::req_cache_control;
 use crate::request_parts;
 use crate::response_parts;
@@ -84,7 +84,7 @@ fn not_when_proxy_revalidating() {
 #[test]
 fn when_not_a_proxy_revalidating() {
     harness()
-        .options(private_opts())
+        .config(private_config())
         .test_with_cache_control("max-age=2, proxy-revalidate");
 }
 
